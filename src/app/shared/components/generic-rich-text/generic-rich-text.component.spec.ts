@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { QuillEditorComponent } from 'ngx-quill';
 import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
@@ -99,6 +100,56 @@ describe('GenericRichTextComponent', () => {
       for(let i=0;i<60&&src!==url;i++) {await new Promise(requestAnimationFrame);fixture.detectChanges();src=editor()?.quillEditor?.root.querySelector('img')?.getAttribute('src');}
       expect(src).toBe(url);
       expect(editor()?.quillEditor?.root.textContent).toContain(text);
+    } finally { URL.revokeObjectURL(url); }
+  });
+  it('resolves a newly appended asset after typing alongside an existing private image',async()=>{
+    const bytes=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='),c=>c.charCodeAt(0));
+    const oldUrl=URL.createObjectURL(new Blob([bytes],{type:'image/png'}));
+    const newUrl=URL.createObjectURL(new Blob([bytes],{type:'image/png'}));
+    const base={ops:[{insert:'Existing text\n'},{insert:{image:oldUrl}},{insert:'\nTyped and saved text\n'}]};
+    const config=(value:unknown,sources:readonly string[])=>({fieldId:'body',provider:'quill',format:'quill-delta-object',sanitizerPolicyId:'fixed-article-v2',privateImageSources:sources,value});
+    try {
+      fixture.componentRef.setInput('config',config(base,[oldUrl]));
+      fixture.detectChanges();await import('quill');await fixture.whenStable();fixture.detectChanges();
+      const editor=()=>fixture.debugElement.query(By.directive(QuillEditorComponent))?.componentInstance as QuillEditorComponent;
+      for(let i=0;i<60&&!editor()?.quillEditor;i++) {await new Promise(requestAnimationFrame);fixture.detectChanges();}
+      const scope=TestBed.inject(InteractionScopeService);
+      scope.setFieldValue('body',base,{markTouched:true});
+      fixture.componentRef.setInput('config',config({ops:[...base.ops,{insert:{image:'asset-new'}},{insert:'\n'}]},[oldUrl]));
+      fixture.detectChanges();await fixture.whenStable();fixture.detectChanges();
+      fixture.componentRef.setInput('config',config({ops:[...base.ops,{insert:{image:newUrl}},{insert:'\n'}]},[oldUrl]));
+      fixture.detectChanges();await fixture.whenStable();fixture.detectChanges();
+      fixture.componentRef.setInput('config',config({ops:[...base.ops,{insert:{image:newUrl}},{insert:'\n'}]},[oldUrl,newUrl]));
+      fixture.detectChanges();await fixture.whenStable();
+      let sources:string[]=[];
+      for(let i=0;i<60&&!sources.includes(newUrl);i++) {await new Promise(requestAnimationFrame);fixture.detectChanges();sources=Array.from(editor().quillEditor.root.querySelectorAll('img')).map(image=>image.getAttribute('src')??'');}
+      await new Promise(resolve=>setTimeout(resolve,250));fixture.detectChanges();await fixture.whenStable();
+      sources=Array.from(editor().quillEditor.root.querySelectorAll('img')).map(image=>image.getAttribute('src')??'');
+      expect(sources).toEqual([oldUrl,newUrl]);
+      expect(editor().quillEditor.root.textContent).toContain('Typed and saved text');
+    } finally { URL.revokeObjectURL(oldUrl);URL.revokeObjectURL(newUrl); }
+  });
+  it('renders a private preview from runtime signals without a new config input or forced detection',async()=>{
+    const bytes=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='),c=>c.charCodeAt(0));
+    const url=URL.createObjectURL(new Blob([bytes],{type:'image/png'}));
+    const value=signal<unknown>({ops:[{insert:'Saved article text\n'}]});
+    const sources=signal<readonly string[]>([]);
+    const readOnly=signal(false);
+    try {
+      fixture.componentRef.setInput('config',{fieldId:'body',provider:'quill',format:'quill-delta-object',sanitizerPolicyId:'fixed-article-v2',privateImageSources:()=>sources(),value:()=>value(),readOnly:()=>readOnly()});
+      fixture.autoDetectChanges();await import('quill');await fixture.whenStable();
+      const editor=()=>fixture.debugElement.query(By.directive(QuillEditorComponent))?.componentInstance as QuillEditorComponent;
+      for(let i=0;i<60&&!editor()?.quillEditor;i++) {await new Promise(requestAnimationFrame);await fixture.whenStable();}
+      readOnly.set(true);await fixture.whenStable();
+      value.set({ops:[{insert:'Saved article text\n'},{insert:{image:'asset-new'}},{insert:'\n'}]});
+      readOnly.set(false);
+      await fixture.whenStable();await new Promise(resolve=>setTimeout(resolve,150));await fixture.whenStable();
+      expect(editor().quillEditor.root.querySelector('img')?.getAttribute('src')).toContain('data:image/gif');
+      value.set({ops:[{insert:'Saved article text\n'},{insert:{image:url}},{insert:'\n'}]});
+      sources.set([url]);
+      await fixture.whenStable();await new Promise(resolve=>setTimeout(resolve,150));await fixture.whenStable();
+      expect(editor().quillEditor.root.querySelector('img')?.getAttribute('src')).toBe(url);
+      expect(editor().quillEditor.root.textContent).toContain('Saved article text');
     } finally { URL.revokeObjectURL(url); }
   });
   it('does not replace divergent unsaved article text with an incoming image update',async()=>{
