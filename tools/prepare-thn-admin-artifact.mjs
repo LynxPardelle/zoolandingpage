@@ -4,6 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { validateReleaseManifest, validateRouteManifest } from './ops/sync-thn-content-hub-v2-front-door.mjs';
+import { thnEnvironmentProfile } from './lib/thn-environment-profile.mjs';
 
 const fail = reason => { throw new Error(`THN private artifact rejected: ${reason}`); };
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -61,9 +62,9 @@ export async function prepareThnAdminArtifact({ browserRoot, serverRoot, siteCon
   if (typeof enabled !== 'boolean') fail('enabled flag');
   if (await exists(releaseFile) || await exists(bindingFile)) fail('stale artifact already exists');
   if (!enabled) return { enabled: false };
-  if (environment !== 'test') fail('TEST only');
+  const profile = thnEnvironmentProfile(environment);
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(releaseId) || siteConfig?.domain !== 'thehairnarrative.com') fail('release/domain');
-  const routes = validateRouteManifest(routeManifest);
+  const routes = validateRouteManifest(routeManifest, environment);
   const assetUrls = {}, assetHashes = {}, emitted = new Map(), processing = new Set();
   async function visit(relative) {
     if (assetUrls['/' + relative]) return assetUrls['/' + relative];
@@ -131,13 +132,13 @@ export async function prepareThnAdminArtifact({ browserRoot, serverRoot, siteCon
   }
   const staticAssetPaths = Object.keys(assetHashes).sort();
   if (!staticAssetPaths.length || staticAssetPaths.length > 64) fail('bounded asset inventory');
-  const release = validateReleaseManifest({ version: 1, environment: 'test', releaseId, staticAssetPaths });
-  const binding = { origin: 'https://admin-test.thehairnarrative.com', domain: 'thehairnarrative.com', pagePrefix: '/admin/journal',
+  const release = validateReleaseManifest({ version: 1, environment, releaseId, staticAssetPaths }, environment);
+  const binding = { origin: `https://${profile.adminHost}`, domain: 'thehairnarrative.com', pagePrefix: '/admin/journal',
     pageRoutes: routes.origins.admin.pageRoutes.map(route => route.path),
     backendRoutes: routes.origins.admin.backendRoutes.map(({path, methods}) => ({path, methods})),
     backendPrefixes: ['/auth-v2', '/features/content-hub-v2/read', '/features/content-hub-v2/action'],
     staticPaths: release.staticAssetPaths, assetUrls: Object.fromEntries(Object.entries(assetUrls).sort()) };
-  const bindingPackage = { version: 1, environment: 'test', releaseId, binding,
+  const bindingPackage = { version: 1, environment, releaseId, binding,
     assetHashes: Object.fromEntries(Object.entries(assetHashes).sort()) };
   for (const target of emitted.keys()) if (await exists(path.join(browserRoot, target))) fail('stale immutable asset already exists');
   for (const [target, bytes] of emitted) {
@@ -158,10 +159,10 @@ export async function verifyThnAdminArtifact({browserRoot,serverRoot,releaseId,e
     if(await exists(releaseFile)||await exists(bindingFile))fail('disabled artifact contains private binding');
     return {enabled:false};
   }
-  if(environment!=='test')fail('TEST only');
+  thnEnvironmentProfile(environment);
   try {
     const bytes=await regularBytes(path.dirname(browserRoot),'thn-admin-release.json');
-    const release=validateReleaseManifest(JSON.parse(bytes));
+    const release=validateReleaseManifest(JSON.parse(bytes),environment);
     if(release.releaseId!==releaseId||bytes.toString('utf8')!==JSON.stringify(release,null,2)+'\n')fail('release selection');
     const bindingPackage=JSON.parse(await regularBytes(serverRoot,bindingName));
     if(JSON.stringify(bindingPackage.binding?.staticPaths)!==JSON.stringify(release.staticAssetPaths))fail('manifest drift');
@@ -171,7 +172,7 @@ export async function verifyThnAdminArtifact({browserRoot,serverRoot,releaseId,e
     const source=await readFile(new URL('../src/app/shared/utility/auth/protected-admin-origin.utility.ts',import.meta.url),'utf8');
     const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
     const {readPackagedProtectedOrigin}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
-    if(!readPackagedProtectedOrigin(bindingPackage,asset=>actualHashes[asset],releaseId))fail('binding integrity');
+    if(!readPackagedProtectedOrigin(bindingPackage,asset=>actualHashes[asset],releaseId,environment))fail('binding integrity');
     return {enabled:true,release};
   }catch{fail('build selection or integrity');}
 }
@@ -185,7 +186,7 @@ async function main() {
   const result = await prepareThnAdminArtifact({ browserRoot: path.join(root, 'browser'), serverRoot: path.join(root, 'server'), enabled,
     environment: process.env.DEPLOY_ENV, releaseId: process.env.RELEASE_ID,
     siteConfig: enabled ? await thnFontSiteConfig(JSON.parse(await readFile('public/assets/thehairnarrative.com/booksaw-20260827/asset-manifest.txt','utf8')),path.join(root,'browser')) : undefined,
-    routeManifest: enabled ? JSON.parse(await readFile(new URL('./ops/thn-content-hub-v2-route-manifest.json', import.meta.url), 'utf8')) : undefined });
+    routeManifest: enabled ? JSON.parse(await readFile(new URL(process.env.DEPLOY_ENV === 'production' ? './ops/thn-content-hub-v2-production-route-manifest.json' : './ops/thn-content-hub-v2-route-manifest.json', import.meta.url), 'utf8')) : undefined });
   console.log(JSON.stringify({ ok: true, adminEnabled: enabled, staticAssetCount: result.release?.staticAssetPaths.length ?? 0, deployed: false }));
 }
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {

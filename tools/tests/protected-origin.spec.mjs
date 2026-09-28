@@ -9,6 +9,16 @@ const binding={origin:'https://admin.example.test',domain:'example.test',pagePre
   pageRoutes:['/admin/journal','/admin/journal/access','/admin/journal/mfa','/admin/journal/new','/admin/journal/:articleId/edit','/admin/journal/:articleId/preview'],
   backendRoutes:[{path:'/auth-v2/session/signin',methods:['POST']},{path:'/auth-v2/session/me',methods:['GET']},{path:'/features/content-hub-v2/read',methods:['POST']}],
   backendPrefixes:['/auth-v2','/features/content-hub-v2/read','/features/content-hub-v2/action'],staticPaths:['/browser/main.abcdef012345.js']};
+test('SSR private production requests resolve production runtime and never use TEST fallback',()=>{
+ assert.equal(typeof api.resolveProtectedRuntimeEnvironment,'function');
+ const production={...binding,origin:'https://admin.thehairnarrative.com',domain:'thehairnarrative.com'};
+ const testing={...production,origin:'https://admin-test.thehairnarrative.com'};
+ assert.equal(api.resolveProtectedRuntimeEnvironment('admin.thehairnarrative.com',production),'production');
+ assert.equal(api.resolveProtectedRuntimeEnvironment('admin-test.thehairnarrative.com',testing),'test');
+ assert.equal(api.resolveProtectedRuntimeEnvironment('admin-test.thehairnarrative.com',production),null);
+ assert.equal(api.resolveProtectedRuntimeEnvironment('admin.thehairnarrative.com',testing),null);
+ assert.equal(api.resolveProtectedRuntimeEnvironment('admin.thehairnarrative.com.attacker.test',production),null);
+});
 test('private inventory is explicit and cannot be selected by a draft query',()=>{
   assert.equal(typeof api.classifyProtectedOriginRequest,'function');
   const check=(path,method='GET',host='admin.example.test')=>api.classifyProtectedOriginRequest(host,path,method,binding);
@@ -76,4 +86,13 @@ test('packaged bindings fail closed on integrity, release, host, route or manife
   assert.equal(api.readPackagedProtectedOrigin(changed,digest),null);
  }
  assert.equal(api.readPackagedProtectedOrigin(undefined,digest),null);
+ const production=structuredClone(packaged);
+ production.environment='production';
+ production.binding.origin='https://admin.thehairnarrative.com';
+ assert.deepEqual(api.readPackagedProtectedOrigin(production,digest,production.releaseId,'production'),production.binding);
+ assert.equal(api.readPackagedProtectedOrigin(production,digest,production.releaseId),null);
+ assert.equal(api.readPackagedProtectedOrigin(packaged,digest,packaged.releaseId,'production'),null);
+ for(const invalid of ['prod','main','unknown','']) assert.equal(api.readPackagedProtectedOrigin(production,digest,production.releaseId,invalid),null);
+ production.binding.origin=packaged.binding.origin;
+ assert.equal(api.readPackagedProtectedOrigin(production,digest,production.releaseId,'production'),null);
 });

@@ -9,6 +9,29 @@ import { setTestBrowserUrl } from '@/test-browser-state';
 import { clearRuntimeBundleServerCacheForTesting, ConfigApiService } from './config-api.service';
 
 describe('ConfigApiService', () => {
+    it('rejects a crossed private origin before any cached bundle or network request', async () => {
+        const http=jasmine.createSpyObj<HttpClient>('HttpClient',['get']);
+        TestBed.configureTestingModule({providers:[{provide:HttpClient,useValue:http},{provide:ProtectedOriginService,useValue:{context:{origin:'https://admin-test.thehairnarrative.com',domain:'thehairnarrative.com',originRole:'protected-admin'}}}]});
+        const service=TestBed.inject(ConfigApiService);
+        spyOn<any>(service,'resolveCurrentUrl').and.returnValue(new URL('https://admin.thehairnarrative.com/admin/journal'));
+        const cached=spyOn<any>(service,'readCachedRuntimeBundle').and.returnValue({version:1});
+        await expectAsync(service.getRuntimeBundle('thehairnarrative.com',{path:'/admin/journal',environment:'test'})).toBeRejectedWithError('Invalid protected runtime origin');
+        expect(cached).not.toHaveBeenCalled();expect(http.get).not.toHaveBeenCalled();
+    });
+    it('pins the trusted production admin to production and its fallback despite a TEST parameter', async () => {
+        (environment as {configApiUrl:string}).configApiUrl='https://api.zoolandingpage.com.mx';
+        (environment as {configApiRuntimeFallbackUrls?:Record<string,string>}).configApiRuntimeFallbackUrls={test:'https://test-runtime.example.com/Prod',production:'https://prod-runtime.example.com/Prod'};
+        const http=jasmine.createSpyObj<HttpClient>('HttpClient',['get']);http.get.and.returnValue(of({version:1}));
+        const origin='https://admin.thehairnarrative.com';
+        TestBed.configureTestingModule({providers:[{provide:HttpClient,useValue:http},{provide:ProtectedOriginService,useValue:{context:{origin,domain:'thehairnarrative.com',originRole:'protected-admin'}}}]});
+        const service=TestBed.inject(ConfigApiService);
+        spyOn<any>(service,'resolveCurrentUrl').and.returnValue(new URL(origin+'/admin/journal'));
+        expect((service as any).resolveRuntimeFallbackEnvironment({environment:'test'})).toBe('production');
+        await service.getRuntimeBundle('thehairnarrative.com',{path:'/admin/journal',environment:'test'});
+        const url=String(http.get.calls.mostRecent().args[0]);
+        expect(url).toContain('https://prod-runtime.example.com/Prod/runtime-bundle');
+        expect(url).toContain('environment=production');
+    });
     it('pins the trusted dedicated admin to TEST even if an explicit parameter says production', async () => {
         const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
         http.get.and.returnValue(of({version:1}));

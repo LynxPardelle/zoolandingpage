@@ -27,7 +27,7 @@ test('manual private TEST publication skips incompatible push builds without byp
   }
   const publish = workflow.split('  publish:')[1];
   assert.match(publish, /^    needs: validate$/m);
-  assert.doesNotMatch(publish, /^    if:/m);
+  assert.match(publish, /^    if: needs.validate.outputs.source_only != 'true'$/m);
   assert.match(validate, /THN_ADMIN_ARTIFACT_ENABLED:.*github.event_name == 'workflow_dispatch' && inputs.thn_admin_artifact/);
   assert.match(publish, /selected == allowed/);
   const ci = await readFile(new URL('../../.github/workflows/angular-validate.yml', import.meta.url), 'utf8');
@@ -100,14 +100,29 @@ test('private producer accepts an exact reachable mixed-case Angular module hash
   assert.ok(!result.release.staticAssetPaths.includes('/browser/chunk-2ZPUOXRY.js'));
 });
 
-test('private producer is default-off, rejects production and never overwrites an existing private artifact', async () => {
+test('private producer is default-off, rejects a mismatched production profile and never overwrites an existing private artifact', async () => {
   const { prepareThnAdminArtifact } = await api();
   const { options } = await fixture();
   assert.deepEqual(await prepareThnAdminArtifact({ ...options, enabled: false }), { enabled: false });
   assert.equal(existsSync(path.join(options.serverRoot, 'thn-protected-origin-binding.json')), false);
-  await assert.rejects(() => prepareThnAdminArtifact({ ...options, environment: 'production' }), /TEST/);
+  await assert.rejects(() => prepareThnAdminArtifact({ ...options, environment: 'production' }), /environment|origin|profile/i);
   await prepareThnAdminArtifact(options);
   await assert.rejects(() => prepareThnAdminArtifact(options), /exist|stale/i);
+});
+
+test('production artifact pins its own exact host, routes and release environment; TEST cannot consume it', async () => {
+  const { prepareThnAdminArtifact, verifyThnAdminArtifact } = await api();
+  const { options } = await fixture();
+  const routeManifest = structuredClone(options.routeManifest);
+  routeManifest.environment = 'production';
+  routeManifest.origins.public.host = 'thehairnarrative.com';
+  routeManifest.origins.admin.host = 'admin.thehairnarrative.com';
+  const production = { ...options, environment: 'production', routeManifest };
+  const result = await prepareThnAdminArtifact(production);
+  assert.equal(result.release.environment, 'production');
+  assert.equal(result.bindingPackage.binding.origin, 'https://admin.thehairnarrative.com');
+  assert.equal((await verifyThnAdminArtifact(production)).enabled, true);
+  await assert.rejects(() => verifyThnAdminArtifact({ ...production, environment: 'test' }), /integrity|selection/i);
 });
 
 test('private producer rejects unbounded imports, path escapes, remote resources, private files and linked ancestors', async () => {

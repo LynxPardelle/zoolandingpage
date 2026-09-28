@@ -23,6 +23,12 @@ Never deploy a sibling by copying a command from this hub. Open the sibling as a
 
 ## Hub Branch And Artifact Flow
 
+For the THN production migration, a main push first verifies `APP_PRODUCTION_PROMOTION_SELECTION_JSON` as a closed source-only selection: `schemaVersion:1`, `mode:"thn-source-only"`, full source SHA/tree, target base SHA and native merge tree. The two merge parents, current TEST head and merged tree must match. Missing, stale or extra selection fields stop before credentials. A verified source-only promotion skips artifact building and publication; mandatory Angular CI remains active.
+
+The separately authorized manual production publication uses `thn_admin_artifact=true` with the production Environment opt-in. It creates a production artifact and exact `admin.thehairnarrative.com` binding, never activates a TEST artifact. SSR deployment must select `THN_DEPLOYMENT_ENVIRONMENT=production` and the matching release ID; a mismatched package disables the private surface. Registry identities, DNS/certificate, owner enrollment and infrastructure inventory approvals are separate prerequisite and activation gates.
+
+Recovery selection uses `prepare-ssr-delivery.mjs --rollback` with `ROLLBACK_ENVIRONMENT=production` and the recorded successful main run, artifact ID, source SHA, attempt and external delivery digest. It returns `activationAllowed:false`; separately reviewed infrastructure activation remains required. Omitting the environment retains the existing TEST recovery selection.
+
 Preserve the protected promotion path:
 
 ```text
