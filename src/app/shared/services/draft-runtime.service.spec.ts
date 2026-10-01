@@ -203,10 +203,10 @@ describe('DraftRuntimeService', () => {
 
   it('resolves the draft page from site-config routes when no explicit draftPageId is present', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://test.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/servicios?draftDomain=example.com',
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         routes: [
           { path: '/', pageId: 'home' },
@@ -217,7 +217,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com', { path: '/servicios', lang: '' });
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('example.com', { path: '/servicios', lang: '' });
     expect(context.pageId).toBe('servicios');
     expect(context.path).toBe('/servicios');
     expect(service.activeDraftPageId()).toBe('servicios');
@@ -225,10 +225,10 @@ describe('DraftRuntimeService', () => {
 
   it('retains the exact fixed-language route when an explicit draftPageId agrees with it', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://test.zoolandingpage.com.mx/soft-landing-china/zh?draftDomain=pamelabetancourt.com&draftPageId=soft-landing-china&lang=en',
+      'https://test.zoolandingpage.com.mx/soft-landing-china/zh?draftDomain=example.com&draftPageId=soft-landing-china&lang=en',
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         routes: [
           { path: '/soft-landing-china/eng', pageId: 'soft-landing-china', language: 'en' },
@@ -239,7 +239,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com', {
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('example.com', {
       path: '/soft-landing-china/zh',
       lang: 'en',
     });
@@ -259,10 +259,10 @@ describe('DraftRuntimeService', () => {
 
   it('keeps explicit preview semantics when draftPageId intentionally differs from the exact route', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://test.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&draftPageId=contactame',
+      'https://test.zoolandingpage.com.mx/servicios?draftDomain=example.com&draftPageId=contactame',
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         routes: [
           { path: '/servicios', pageId: 'servicios' },
@@ -272,7 +272,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com', { path: '/servicios', lang: '' });
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('example.com', { path: '/servicios', lang: '' });
     expect(context.pageId).toBe('contactame');
     expect(context.route).toBeNull();
     expect(context.routeParams).toBeUndefined();
@@ -282,10 +282,10 @@ describe('DraftRuntimeService', () => {
 
   it('matches encoded route paths against unicode site-config entries', async () => {
     const { service } = configure(
-      'https://test.zoolandingpage.com.mx/cont%C3%A1ctame?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/cont%C3%A1ctame?draftDomain=example.com',
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         routes: [
           { path: '/contáctame', pageId: 'contactame' },
@@ -302,10 +302,10 @@ describe('DraftRuntimeService', () => {
 
   it('retains the exact fixed-language route when siblings share one page id', async () => {
     const { service } = configure(
-      'https://test.zoolandingpage.com.mx/soft-landing-china/zh?draftDomain=pamelabetancourt.com&lang=en',
+      'https://test.zoolandingpage.com.mx/soft-landing-china/zh?draftDomain=example.com&lang=en',
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         routes: [
           { path: '/soft-landing-china/eng', pageId: 'china', language: 'en' },
@@ -325,12 +325,12 @@ describe('DraftRuntimeService', () => {
   });
 
   it('re-resolves an ordinary route after a popstate-style URL change from an explicit fixed route', async () => {
-    const initialUrl = 'https://test.zoolandingpage.com.mx/soft-landing-china/zh?draftDomain=pamelabetancourt.com&draftPageId=china&lang=en';
+    const initialUrl = 'https://test.zoolandingpage.com.mx/soft-landing-china/zh?draftDomain=example.com&draftPageId=china&lang=en';
     const { service, setUrl } = configure(
       initialUrl,
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         routes: [
           { path: '/soft-landing-china/eng', pageId: 'china', language: 'en' },
@@ -344,7 +344,7 @@ describe('DraftRuntimeService', () => {
     const fixedContext = await service.resolveActiveDraftContext();
     expect(fixedContext.route?.language).toBe('zh');
 
-    setUrl('https://test.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&lang=es');
+    setUrl('https://test.zoolandingpage.com.mx/servicios?draftDomain=example.com&lang=es');
     window.dispatchEvent(new PopStateEvent('popstate'));
     const ordinaryContext = await service.resolveActiveDraftContext();
 
@@ -359,10 +359,10 @@ describe('DraftRuntimeService', () => {
 
   it('keeps the root route on the draft default page', async () => {
     const { service } = configure(
-      'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/?draftDomain=example.com',
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         notFoundPageId: 'not-found',
         routes: [
@@ -381,10 +381,10 @@ describe('DraftRuntimeService', () => {
 
   it('uses the configured notFoundPageId when the current route is not mapped in site-config', async () => {
     const { service, loadPageConfig, loadComponents } = configure(
-      'https://test.zoolandingpage.com.mx/no-existe?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/no-existe?draftDomain=example.com',
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         notFoundPageId: 'not-found',
         routes: [
@@ -401,16 +401,16 @@ describe('DraftRuntimeService', () => {
     expect(context.path).toBe('/no-existe');
     expect(context.route?.path).toBe('/404');
     expect(service.activeDraftPageId()).toBe('not-found');
-    expect(loadPageConfig).toHaveBeenCalledWith('pamelabetancourt.com', 'not-found', { path: '/no-existe' });
-    expect(loadComponents).toHaveBeenCalledWith('pamelabetancourt.com', 'not-found', { path: '/no-existe' });
+    expect(loadPageConfig).toHaveBeenCalledWith('example.com', 'not-found', { path: '/no-existe' });
+    expect(loadComponents).toHaveBeenCalledWith('example.com', 'not-found', { path: '/no-existe' });
   });
 
   it('uses the /404 route as the draft not-found page when notFoundPageId is omitted', async () => {
     const { service } = configure(
-      'https://test.zoolandingpage.com.mx/no-existe?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/no-existe?draftDomain=example.com',
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         routes: [
           { path: '/', pageId: 'home' },
@@ -487,12 +487,12 @@ describe('DraftRuntimeService', () => {
   });
 
   it('uses History API for draft selection on the client', () => {
-    const initialUrl = 'http://localhost:4200/home?draftDomain=pamelabetancourt.com&debugWorkspace=true';
+    const initialUrl = 'http://localhost:4200/home?draftDomain=example.com&debugWorkspace=true';
     const { service } = configure(
       initialUrl,
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         routes: [
           { path: '/home', pageId: 'home' },
@@ -504,21 +504,21 @@ describe('DraftRuntimeService', () => {
     setBrowserUrl(initialUrl);
     const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
-    service.selectDraftByKey('pamelabetancourt.com::servicios');
+    service.selectDraftByKey('example.com::servicios');
 
     const pushedPath = String(pushState.calls.mostRecent().args[2] ?? '');
     expect(pushState).toHaveBeenCalledTimes(1);
-    expect(pushedPath).toContain('draftDomain=pamelabetancourt.com');
+    expect(pushedPath).toContain('draftDomain=example.com');
     expect(pushedPath).toContain('draftPageId=servicios');
   });
 
   it('recomputes the active draft domain and page after client-side draft switching', async () => {
-    const initialUrl = 'http://localhost:4200/home?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true';
+    const initialUrl = 'http://localhost:4200/home?draftDomain=example.com&draftPageId=home&debugWorkspace=true';
     const { service, loadSiteConfig, setUrl } = configure(
       initialUrl,
       {
         version: 1,
-        domain: 'pamelabetancourt.com',
+        domain: 'example.com',
         defaultPageId: 'home',
         routes: [
           { path: '/home', pageId: 'home' },
@@ -529,7 +529,7 @@ describe('DraftRuntimeService', () => {
     setBrowserUrl(initialUrl);
 
     await service.resolveActiveDraftContext();
-    expect(service.activeDraftDomain()).toBe('pamelabetancourt.com');
+    expect(service.activeDraftDomain()).toBe('example.com');
     expect(service.activeDraftPageId()).toBe('home');
 
     loadSiteConfig.and.resolveTo({
@@ -817,7 +817,7 @@ describe('DraftRuntimeService', () => {
   });
 
   it('auto-enables the debug workspace on localhost when a draft identity is resolved', () => {
-    const initialUrl = 'http://127.0.0.1:4200/servicios?draftDomain=pamelabetancourt.com&draftPageId=servicios';
+    const initialUrl = 'http://127.0.0.1:4200/servicios?draftDomain=example.com&draftPageId=servicios';
     const { service } = configure(
       initialUrl,
       null,
@@ -847,7 +847,7 @@ describe('DraftRuntimeService', () => {
     (environment as { production: boolean; development: boolean }).development = false;
 
     const { service } = configure(
-      'https://pamelabetancourt.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com',
+      'https://example.zoolandingpage.com.mx/servicios?draftDomain=example.com',
       null,
     );
 
@@ -859,7 +859,7 @@ describe('DraftRuntimeService', () => {
     (environment as { production: boolean; development: boolean }).development = false;
 
     const { service } = configure(
-      'https://pamelabetancourt.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
+      'https://example.zoolandingpage.com.mx/servicios?draftDomain=example.com&debugWorkspace=true',
       null,
     );
 
@@ -871,7 +871,7 @@ describe('DraftRuntimeService', () => {
     (environment as { production: boolean; development: boolean }).development = false;
 
     const { service } = configure(
-      'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true',
+      'https://test.zoolandingpage.com.mx/?draftDomain=example.com&draftPageId=home&debugWorkspace=true',
       null,
     );
 
@@ -882,7 +882,7 @@ describe('DraftRuntimeService', () => {
     (environment as { production: boolean; development: boolean }).production = true;
     (environment as { production: boolean; development: boolean }).development = false;
 
-    const initialUrl = 'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true';
+    const initialUrl = 'https://test.zoolandingpage.com.mx/?draftDomain=example.com&draftPageId=home&debugWorkspace=true';
     const { service } = configure(
       initialUrl,
       null,
@@ -891,7 +891,7 @@ describe('DraftRuntimeService', () => {
     const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
     service.availableDrafts.set([
-      { domain: 'pamelabetancourt.com', pageId: 'home' },
+      { domain: 'example.com', pageId: 'home' },
       { domain: 'music.lynxpardelle.com', pageId: 'default' },
     ]);
     service.selectDraftByKey('music.lynxpardelle.com::default');

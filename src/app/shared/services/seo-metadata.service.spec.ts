@@ -778,7 +778,7 @@ describe('SeoMetadataService', () => {
             createElement: baseDoc.createElement.bind(baseDoc),
             defaultView: {
                 location: {
-                    origin: 'http://pamelabetancourt.zoolandingpage.com.mx',
+                    origin: 'http://example.zoolandingpage.com.mx',
                     pathname: '/',
                 },
             },
@@ -794,17 +794,17 @@ describe('SeoMetadataService', () => {
                 {
                     provide: DomainResolverService,
                     useValue: {
-                        resolveDomain: () => ({ domain: 'pamelabetancourt.zoolandingpage.com.mx' }),
+                        resolveDomain: () => ({ domain: 'example.zoolandingpage.com.mx' }),
                     },
                 },
                 {
                     provide: RuntimeConfigService,
                     useValue: {
                         seoDefaults: () => ({
-                            canonicalOrigin: 'https://pamelabetancourt.zoolandingpage.com.mx',
+                            canonicalOrigin: 'https://example.zoolandingpage.com.mx',
                         }),
-                        appName: () => 'Pamela Betancourt',
-                        appDescription: () => 'Pamela site',
+                        appName: () => 'Example Site',
+                        appDescription: () => 'Example site',
                     },
                 },
             ],
@@ -812,14 +812,14 @@ describe('SeoMetadataService', () => {
 
         service = TestBed.inject(SeoMetadataService);
         service.apply('es', {
-            title: 'Pamela Betancourt | Home',
+            title: 'Example Site | Home',
             description: 'More strategy, less improvisation.',
-            canonical: 'https://pamelabetancourt.zoolandingpage.com.mx/home',
+            canonical: 'https://example.zoolandingpage.com.mx/home',
         } as never);
 
         expect(meta.updateTag).toHaveBeenCalledWith({
             property: 'og:url',
-            content: 'https://pamelabetancourt.zoolandingpage.com.mx/home',
+            content: 'https://example.zoolandingpage.com.mx/home',
         });
     });
 
