@@ -4,8 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
-const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, value => value.slice(1)));
+const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 const forbiddenSegments = new Set([
   '.git', '.github', '_repos', 'server', 'ai_notes', 'findings', 'errors-reports',
   'cvs_n_photos', 'tools', 'output', 'logs', 'reports', 'devonly', '.superpowers',
