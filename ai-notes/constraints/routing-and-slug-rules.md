@@ -31,7 +31,7 @@ Last Reviewed: 2026-08-26 (Central Time)
 - Internal client navigation preserves scroll position by default so existing drafts do not change behavior.
 - Drafts that should reset after cross-page navigation can set `runtime.navigation.scrollRestoration.mode` in `site-config.json`.
 - Supported modes are `preserve`, `top`, and `position`; use `position` with numeric `top` and optional `left` when a draft needs to land at a fixed offset instead of the top.
-- For Pamela-style multi-page sites that should mimic full-page navigation, use `mode: "top"` and verify the behavior with a real browser click from a scrolled position.
+- For multi-page sites that should mimic full-page navigation, use `mode: "top"` and verify the behavior with a real browser click from a scrolled position.
 
 ## Drift Checks
 

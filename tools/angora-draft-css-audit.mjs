@@ -2,7 +2,6 @@ import { chromium } from 'playwright-core';
 
 const DEFAULT_DRAFTS = [
   'zoolandingpage.com.mx',
-  'pamelabetancourt.com',
   'erosbarajas.com',
   'alecfest-voliii.com',
 ];

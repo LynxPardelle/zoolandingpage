@@ -75,7 +75,7 @@ describe('setLanguageHandler', () => {
 });
 
 describe('navigateToUrlHandler', () => {
-    const draftHref = 'http://localhost/home?draftDomain=pamelabetancourt.com&debugWorkspace=true';
+    const draftHref = 'http://localhost/home?draftDomain=example.com&debugWorkspace=true';
     let context: EventExecutionContext;
     let openSpy: jasmine.Spy<(url?: string | URL, target?: string, features?: string) => Window | null>;
     let dispatchSpy: jasmine.Spy<typeof window.dispatchEvent>;
@@ -83,7 +83,7 @@ describe('navigateToUrlHandler', () => {
     beforeEach(() => {
         TestBed.resetTestingModule();
         restoreNativeHistoryStateMethods();
-        setBrowserUrl('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        setBrowserUrl('/home?draftDomain=example.com&debugWorkspace=true');
 
         TestBed.configureTestingModule({
             providers: []
@@ -109,20 +109,20 @@ describe('navigateToUrlHandler', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
         const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
-        handler.handle(context, ['/servicios?draftDomain=pamelabetancourt.com', '_blank', undefined, draftHref]);
+        handler.handle(context, ['/servicios?draftDomain=example.com', '_blank', undefined, draftHref]);
 
         expect(openSpy).not.toHaveBeenCalled();
         expect(dispatchSpy).toHaveBeenCalled();
-        expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=example.com&debugWorkspace=true');
     });
 
     it('should preserve debugWorkspace on internal same-tab navigation', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
         const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
-        handler.handle(context, ['/acerca-de-mi?draftDomain=pamelabetancourt.com', '_self', undefined, draftHref]);
+        handler.handle(context, ['/acerca-de-mi?draftDomain=example.com', '_self', undefined, draftHref]);
 
-        expect(pushState).toHaveBeenCalledWith({}, '', '/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(pushState).toHaveBeenCalledWith({}, '', '/acerca-de-mi?draftDomain=example.com&debugWorkspace=true');
     });
 
     it('should preserve the active draftDomain on internal navigation when the target omits it', () => {
@@ -131,7 +131,7 @@ describe('navigateToUrlHandler', () => {
 
         handler.handle(context, ['/servicios', '_self', undefined, draftHref]);
 
-        expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=example.com&debugWorkspace=true');
     });
 
     it('should optionally scroll to top on internal same-tab navigation', () => {
@@ -141,7 +141,7 @@ describe('navigateToUrlHandler', () => {
 
         handler.handle(context, ['/servicios', '_self', 'top', draftHref]);
 
-        expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=example.com&debugWorkspace=true');
         expect(scrollTo).toHaveBeenCalledTimes(1);
         expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
     });
@@ -150,14 +150,14 @@ describe('navigateToUrlHandler', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
         const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
-        handler.handle(context, ['/cont%C3%A1ctame?draftDomain=pamelabetancourt.com', '_self', undefined, draftHref]);
+        handler.handle(context, ['/cont%C3%A1ctame?draftDomain=example.com', '_self', undefined, draftHref]);
 
-        expect(pushState).toHaveBeenCalledWith({}, '', '/cont%C3%A1ctame?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(pushState).toHaveBeenCalledWith({}, '', '/cont%C3%A1ctame?draftDomain=example.com&debugWorkspace=true');
     });
 
     it('should still open external _blank URLs in a new tab', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
-        setBrowserUrl('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        setBrowserUrl('/home?draftDomain=example.com&debugWorkspace=true');
 
         handler.handle(context, ['https://example.com/profile', '_blank']);
 

@@ -10,7 +10,6 @@ const DEFAULT_HOSTS = [
   'zoolandingpage.com.mx',
   'erosbarajas.com',
   'alecfest-voliii.zoolandingpage.com.mx',
-  'pamelabetancourt.zoolandingpage.com.mx',
 ];
 
 const DEFAULT_RUNTIME_BASE = 'https://api.zoolandingpage.com.mx';
