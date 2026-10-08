@@ -114,7 +114,7 @@ test('readDraftRegistry requires one exact safe deployment scope for every v2 dr
   await assert.rejects(readDraftRegistry(registryPath), /deploymentEnvironments/i);
 });
 
-test('canonical v2 registry keeps only Zooberiah Systems test-only', async () => {
+test('canonical v2 registry allows every registered draft to deploy production', async () => {
   const registry = await readDraftRegistry(path.resolve('docs/drafts-registry.json'));
   assert.equal(registry.version, 2);
   assert.equal(registry.drafts.length, 14);
@@ -122,7 +122,7 @@ test('canonical v2 registry keeps only Zooberiah Systems test-only', async () =>
     registry.drafts
       .filter(draft => !draft.deploymentEnvironments.includes('production'))
       .map(draft => [draft.domain, draft.deploymentEnvironments]),
-    [['zooberiahsystems.com', ['test']]],
+    [],
   );
 });
 
