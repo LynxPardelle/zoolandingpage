@@ -101,6 +101,14 @@
       "githubUrl": "https://github.com/LynxPardelle/draft-zooberiahsystems-com.git",
       "localPath": "drafts/zooberiahsystems.com",
       "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "catvelvet.zoolandingpage.com.mx",
+      "owner": "Toydrum",
+      "repo": "draft-catvelvet",
+      "githubUrl": "https://github.com/Toydrum/draft-catvelvet.git",
+      "localPath": "drafts/catvelvet.zoolandingpage.com.mx",
+      "deploymentEnvironments": ["test"]
     }
   ]
 }
