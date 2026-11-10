@@ -1,4 +1,30 @@
-/* Animation hooks only; all layout/visual styles use angora utilities in the template */
+/* Keep the first paint usable while draft utilities load. Authored classes take precedence. */
+@layer zlp-modal-defaults {
+  .zlp-modal-frame {
+    position: fixed;
+    inset: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    pointer-events: none;
+  }
+
+  .zlp-modal-frame--sheet {
+    align-items: flex-end;
+  }
+
+  .zlp-modal-panel {
+    position: relative;
+    box-sizing: border-box;
+    width: min(100%, 35rem);
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    pointer-events: auto;
+  }
+}
+
 .modal-anim-fade {
   animation: fade 0.15s ease;
 }
