@@ -6,7 +6,6 @@ import {
   Component,
   DestroyRef,
   effect,
-  ElementRef,
   HostListener,
   inject,
   Input,
@@ -19,6 +18,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { AriaLiveService } from '../../services/aria-live.service';
+import { AngoraCombosService } from '../../services/angora-combos.service';
 import { I18nService } from '../../services/i18n.service';
 import { MotionPreferenceService } from '../../services/motion-preference.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
@@ -36,6 +36,7 @@ import { ModalConfig } from './generic-modal.types';
 export class GenericModalComponent {
   @Input() config: ModalConfig | null = null;
   private readonly modalService = inject(GenericModalService);
+  private readonly combos = inject(AngoraCombosService);
   private readonly injector = inject(Injector);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
@@ -43,6 +44,7 @@ export class GenericModalComponent {
   private overlayRef: OverlayRef | null = null;
   private focusTrap: FocusTrap | null = null;
   private previousFocused: HTMLElement | null = null;
+  private previousBodyOverflow = '';
   private open = signal(false);
   isOpen = () => this.open();
   size = () => this.config?.size;
@@ -50,12 +52,10 @@ export class GenericModalComponent {
   readonly motion = inject(MotionPreferenceService);
   private readonly i18n = inject(I18nService);
 
-  constructor(
-    private host: ElementRef<HTMLElement>,
-    private vcr: ViewContainerRef
-  ) {
+  constructor(private vcr: ViewContainerRef) {
     // Announce open/close changes politely
     const live = inject(AriaLiveService);
+    this.destroyRef.onDestroy(() => this.closeModal(true));
     effect(() => {
       if (!this.isBrowser) return;
       const active = !!this.modalService.modalRef();
@@ -100,43 +100,43 @@ export class GenericModalComponent {
   private openModal(): void {
     if (!this.isBrowser) return;
     this.previousFocused = document.activeElement as HTMLElement | null;
-    this.overlayRef = this.createOverlay();
+    const overlay = this.createOverlay();
+    this.overlayRef = overlay;
+    this.previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    this.open.set(true);
+    overlay.backdropClick().subscribe(() => this.onBackdrop());
     // Attach portal in a microtask so @ViewChild template is ready
     queueMicrotask(() => {
-      if (this.modalTpl && this.overlayRef && !this.overlayRef.hasAttached()) {
-        const portal = new TemplatePortal(this.modalTpl, this.vcr);
-        this.overlayRef.attach(portal);
-      }
+      if (!this.modalTpl || this.overlayRef !== overlay || !this.modalService.modalRef()) return;
+      overlay.attach(new TemplatePortal(this.modalTpl, this.vcr));
+      this.combos.updateRenderedDomClasses(overlay.overlayElement);
+      if (overlay.backdropElement) this.combos.updateRenderedDomClasses(overlay.backdropElement);
+
+      const panel = overlay.overlayElement.querySelector<HTMLElement>('[role="dialog"]');
+      if (!panel) return;
+      this.focusTrap = this.injector.get(FocusTrapFactory).create(panel);
+      if (!this.focusTrap.focusInitialElement()) panel.focus();
     });
-    this.open.set(true);
-    document.body.style.overflow = 'hidden';
-    // Focus trap after next microtask so panel exists
-    queueMicrotask(() => {
-      const panel = this.host.nativeElement.querySelector(
-        '.modal-panel'
-      ) as HTMLElement | null;
-      if (panel) {
-        panel.setAttribute('tabindex', '-1');
-        this.focusTrap = this.injector.get(FocusTrapFactory).create(panel);
-        this.focusTrap.focusInitialElementWhenReady();
-      }
-    });
-    this.overlayRef.backdropClick().subscribe(() => this.onBackdrop());
-    this.destroyRef.onDestroy(() => this.closeModal(true));
   }
   @ViewChild('modalContent') private modalTpl?: TemplateRef<unknown>;
 
   private closeModal(fromDestroy = false): void {
+    if (!this.overlayRef) return;
     this.open.set(false);
     if (this.isBrowser) {
-      document.body.style.overflow = '';
+      document.body.style.overflow = this.previousBodyOverflow;
     }
     this.focusTrap?.destroy();
     this.focusTrap = null;
     this.overlayRef?.dispose();
     this.overlayRef = null;
-    if (!fromDestroy && this.previousFocused) {
-      queueMicrotask(() => this.previousFocused?.focus());
+    const previousFocused = this.previousFocused;
+    this.previousFocused = null;
+    if (!fromDestroy && previousFocused) {
+      queueMicrotask(() => {
+        if (!this.overlayRef && previousFocused.isConnected) previousFocused.focus();
+      });
     }
   }
 

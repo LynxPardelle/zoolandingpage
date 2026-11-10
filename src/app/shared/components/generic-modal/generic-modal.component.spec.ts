@@ -2,6 +2,7 @@ import { FocusTrapFactory } from '@angular/cdk/a11y';
 import { Overlay } from '@angular/cdk/overlay';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { AngoraCombosService } from '../../services/angora-combos.service';
 import { AriaLiveService } from '../../services/aria-live.service';
 import { I18nService } from '../../services/i18n.service';
 import { MotionPreferenceService } from '../../services/motion-preference.service';
@@ -44,6 +45,7 @@ describe('GenericModalComponent', () => {
           },
         },
         { provide: MotionPreferenceService, useValue: { reduced: () => false } },
+        { provide: AngoraCombosService, useValue: { updateRenderedDomClasses: () => undefined } },
         { provide: I18nService, useValue: { tOr: (_key: string, fallback: string) => fallback } },
         { provide: AriaLiveService, useValue: { announce: () => undefined } },
       ],
@@ -66,5 +68,47 @@ describe('GenericModalComponent', () => {
     expect(TestBed.inject(GenericModalService).close).not.toHaveBeenCalled();
     comp.config={};comp.onEsc();
     expect(TestBed.inject(GenericModalService).close).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('GenericModalComponent with a real overlay', () => {
+  it('styles and focuses the first attached dialog before restoring focus on close', async () => {
+    const active = signal<{ id: string } | null>(null);
+    const updateRenderedDomClasses = jasmine.createSpy('updateRenderedDomClasses');
+    await TestBed.configureTestingModule({
+      imports: [GenericModalComponent],
+      providers: [
+        { provide: GenericModalService, useValue: { modalRef: active, close: () => active.set(null) } },
+        { provide: AngoraCombosService, useValue: { updateRenderedDomClasses } },
+        { provide: MotionPreferenceService, useValue: { reduced: () => true } },
+        { provide: I18nService, useValue: { tOr: (_key: string, fallback: string) => fallback } },
+        { provide: AriaLiveService, useValue: { announce: () => undefined } },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(GenericModalComponent);
+    const trigger = document.createElement('button');
+    document.body.append(trigger);
+    try {
+      fixture.detectChanges();
+      trigger.focus();
+      active.set({ id: 'navigation' });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const dialog = document.querySelector<HTMLElement>('.cdk-overlay-pane [role="dialog"]')!;
+      expect(dialog).not.toBeNull();
+      expect(getComputedStyle(dialog).overflowY).toBe('auto');
+      expect(getComputedStyle(dialog).maxHeight).not.toBe('none');
+      expect(getComputedStyle(dialog).pointerEvents).toBe('auto');
+      expect(dialog.contains(document.activeElement)).toBeTrue();
+      expect(updateRenderedDomClasses).toHaveBeenCalledWith(dialog.closest('.cdk-overlay-pane'));
+      active.set(null);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(dialog.isConnected).toBeFalse();
+      expect(document.activeElement).toBe(trigger);
+    } finally {
+      fixture.destroy();
+      trigger.remove();
+    }
   });
 });

@@ -1,10 +1,12 @@
 <!-- Modal rendered through CDK Overlay; template is projected via TemplatePortal -->
 <ng-template #modalContent>
   <!-- Fullscreen container to center the panel or dock it as sheet -->
-  <div [ngClass]="containerClasses()">
+  <div class="zlp-modal-frame" [class.zlp-modal-frame--sheet]="variant() === 'sheet'" [ngClass]="containerClasses()">
     <div
+      class="zlp-modal-panel"
       [ngClass]="panelClasses()"
       role="dialog"
+      tabindex="-1"
       [attr.aria-modal]="true"
       [attr.aria-label]="config?.ariaLabel"
       [attr.aria-describedby]="config?.ariaDescribedBy"
