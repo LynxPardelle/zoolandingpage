@@ -508,10 +508,18 @@ export class ConfigBootstrapService {
 
         const display = loadedVariables?.variables?.['journalArticle'];
         const bundledBody = loadedVariables?.variables?.['articleContent'];
+        const indexedBody = loadedArticle['articleContent'];
         const canUseBundledBody = matchesArticleRoute
-            && (!strict || (this.isRecord(display) && display['path'] === currentArticle.path));
-        const articleContent = canUseBundledBody
-            && isContentHubRuntimeArticleContent(bundledBody) ? bundledBody : loadedArticle['articleContent'];
+            && (strict
+                ? this.isRecord(display) && display['path'] === currentArticle.path
+                : !isContentHubRuntimeArticleContent(indexedBody));
+        // Runtime Read can merge the draft's fallback HTML with an editorial Delta.
+        const publishedBody = !strict && this.isRecord(bundledBody) && Array.isArray(bundledBody['ops'])
+            ? { ops: bundledBody['ops'] }
+            : bundledBody;
+        const articleContent = canUseBundledBody && isContentHubRuntimeArticleContent(publishedBody)
+            ? publishedBody
+            : indexedBody;
         if (!isContentHubRuntimeArticleContent(articleContent)) {
             return currentArticle;
         }
