@@ -567,6 +567,26 @@ describe('ConfigBootstrapService', () => {
         expect(variableStore.get('articleContent')).toEqual(runtimeReadDelta);
     });
 
+    it('keeps an indexed article body ahead of a draft page fallback', async () => {
+        const path = '/blog/web/blog-builder-seo';
+        const siteConfig = createContentHubSiteConfig();
+        const articleBody = { html: '<h2>Spanish article body</h2><p>Contenido propio.</p>' };
+        store.setSiteConfig(siteConfig);
+        mockSuccessfulBootstrapPayloads();
+        source.loadVariables.and.resolveTo({
+            version: 1,
+            pageId: 'blog-article',
+            domain: siteConfig.domain,
+            variables: {
+                contentHub: { currentArticle: { articleId: 'art_web', locale: 'es', path, articleContent: articleBody } },
+                articleContent: { html: '<p>Article not available</p>' },
+            },
+        });
+
+        await service.load({ domain: siteConfig.domain, pageId: 'blog-article', lang: 'es', routePath: path });
+        expect(variableStore.get('articleContent')).toEqual(articleBody);
+    });
+
     it('reads the published bundle body only for the matching article path and locale', async () => {
         const path = '/blog/web/blog-builder-seo';
         const publishedBody = { ops: [{ insert: 'The published body from Content Hub\n' }] };
@@ -583,7 +603,7 @@ describe('ConfigBootstrapService', () => {
                 domain: siteConfig.domain,
                 variables: {
                     contentHub: { currentArticle: { articleId: 'art_web', locale, path: bundlePath } },
-                    articleContent: publishedBody,
+                    articleContent: { html: '<p>Article not available</p>', ...publishedBody },
                 },
             });
             await service.load({ domain: siteConfig.domain, pageId: 'blog-article', lang: 'es', routePath: path });
