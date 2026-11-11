@@ -567,6 +567,38 @@ describe('ConfigBootstrapService', () => {
         expect(variableStore.get('articleContent')).toEqual(runtimeReadDelta);
     });
 
+    it('reads the published bundle body only for the matching article path and locale', async () => {
+        const path = '/blog/web/blog-builder-seo';
+        const publishedBody = { ops: [{ insert: 'The published body from Content Hub\n' }] };
+        const siteConfig = createContentHubSiteConfig();
+        const resolvedArticle = (siteConfig.runtime?.contentHubs?.[0]?.publicArticles as any[])[0];
+        delete resolvedArticle.articleContent;
+        store.setSiteConfig(siteConfig);
+        mockSuccessfulBootstrapPayloads();
+
+        const loadArticle = async (locale: string, bundlePath: string) => {
+            source.loadVariables.and.resolveTo({
+                version: 1,
+                pageId: 'blog-article',
+                domain: siteConfig.domain,
+                variables: {
+                    contentHub: { currentArticle: { articleId: 'art_web', locale, path: bundlePath } },
+                    articleContent: publishedBody,
+                },
+            });
+            await service.load({ domain: siteConfig.domain, pageId: 'blog-article', lang: 'es', routePath: path });
+        };
+
+        await loadArticle('es', path);
+        expect(variableStore.get('articleContent')).toEqual(publishedBody);
+
+        await loadArticle('en', path);
+        expect(variableStore.get('articleContent')).toBeNull();
+
+        await loadArticle('es', '/blog/web/another-article');
+        expect(variableStore.get('articleContent')).toBeNull();
+    });
+
     it('does not reuse Runtime Read article content for a different resolved article id', async () => {
         const siteConfig = createContentHubSiteConfig();
         const resolvedArticle = (siteConfig.runtime?.contentHubs?.[0]?.publicArticles as any[])[0];
