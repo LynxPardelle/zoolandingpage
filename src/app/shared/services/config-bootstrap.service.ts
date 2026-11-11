@@ -502,11 +502,15 @@ export class ConfigBootstrapService {
         if (!loadedArticle || this.cleanString(loadedArticle['articleId']) !== currentArticle.articleId) {
             return currentArticle;
         }
-        if(strict&&(loadedArticle['locale']!==currentArticle.locale||loadedArticle['path']!==currentArticle.path)) return currentArticle;
+        const matchesArticleRoute = loadedArticle['locale'] === currentArticle.locale
+            && loadedArticle['path'] === currentArticle.path;
+        if (strict && !matchesArticleRoute) return currentArticle;
 
         const display = loadedVariables?.variables?.['journalArticle'];
         const bundledBody = loadedVariables?.variables?.['articleContent'];
-        const articleContent = strict && this.isRecord(display) && display['path'] === currentArticle.path
+        const canUseBundledBody = matchesArticleRoute
+            && (!strict || (this.isRecord(display) && display['path'] === currentArticle.path));
+        const articleContent = canUseBundledBody
             && isContentHubRuntimeArticleContent(bundledBody) ? bundledBody : loadedArticle['articleContent'];
         if (!isContentHubRuntimeArticleContent(articleContent)) {
             return currentArticle;
