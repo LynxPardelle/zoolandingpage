@@ -1,6 +1,6 @@
 # Zoolanding Repository Map
 
-**Verified:** 2026-07-11 (Central Time) against GitHub repository metadata and each local README.
+**Verified:** 2026-08-17 (Central Time) against GitHub repository metadata and each local README.
 **Owner:** `LynxPardelle` unless a repository states otherwise.
 
 This is the fleet router, not a release dashboard. Default branches can change and do not imply a shared promotion path. Before editing a sibling, fetch its current metadata and read its own entrypoint, branch rules, tests, deployment, and rollback guidance.
@@ -16,13 +16,18 @@ This is the fleet router, not a release dashboard. Default branches can change a
 | [`zoolanding-auth-admin`](https://github.com/LynxPardelle/zoolanding-auth-admin) | Private auth-admin BFF, sessions, account/admin flows, CSRF, MFA, and audit behavior | `main` | Repo README and security model |
 | [`zoolanding-cognito-user-lifecycle`](https://github.com/LynxPardelle/zoolanding-cognito-user-lifecycle) | Cognito lifecycle triggers, approved attributes/groups, and repair behavior | `main` | Repo README |
 | [`zoolanding-content-hub`](https://github.com/LynxPardelle/zoolanding-content-hub) | Generic content read/authoring BFF and publication policy | `main` | Repo README; do not edit the known detached local checkout |
+| [`zoositioweb-content-factory`](https://github.com/LynxPardelle/zoositioweb-content-factory) | Local, human-gated campaign strategy, scripts, knowledge cards, render briefs, asset selection, metrics, and blog backlog for `zoositioweb.com.mx` | `main` | Private repo README; CI validates committed campaign data, while rendering, media, credentials, and optional Polly execution remain local; no AWS/OIDC deployment path exists by design |
 | [`zoolanding-combo-catalog`](https://github.com/LynxPardelle/zoolanding-combo-catalog) | Reusable Angora combos, groups, draft policy, and guarded mutations | `main` | Repo `AGENTS.md`, then README |
-| `zoolanding-data-spaces` (local only; no GitHub remote) | Generic draft-scoped collection schemas, records, immutable revisions, and published projections | n/a | Local `AGENTS.md`, then README; Phase 2 forbids AWS deployment |
-| `zoolanding-commerce` (local only; no GitHub remote) | Provider-neutral catalog, inventory, Checkout, subscription, event/outbox, reconciliation, and isolated manual fiscal workflows | n/a | Local `AGENTS.md`, then README; Phase 3/TASK-025 through TASK-034 are complete locally and AWS deployment remains blocked |
+| [`zoolanding-data-spaces`](https://github.com/LynxPardelle/zoolanding-data-spaces) | Generic draft-scoped collection schemas, records, immutable revisions, and published projections | `main` | Private repo `AGENTS.md`, then README; baseline `main`/`test`/`dev` branches are published, but application deployment remains NO-GO |
+| [`zoolanding-commerce`](https://github.com/LynxPardelle/zoolanding-commerce) | Provider-neutral catalog, inventory, Checkout, subscription, event/outbox, reconciliation, and isolated manual fiscal workflows | `main` | Private repo `AGENTS.md`, then README; baseline `main`/`test`/`dev` branches are published, but application deployment remains NO-GO |
+| [`zoolanding-integrations`](https://github.com/LynxPardelle/zoolanding-integrations) | Generic connection bindings, provider mappings and snapshots, webhook receipts/outboxes, Stripe adapter behavior, and provider migrations | `main` | Private repo `AGENTS.md`, then README; baseline `main`/`test`/`dev` branches are published, but application deployment and provider activation remain NO-GO |
+| [`zoolanding-notifications`](https://github.com/LynxPardelle/zoolanding-notifications) | Delivery ledger, retry attempts, rate/circuit state, and bounded SMTP acceptance | `main` | Private repo `AGENTS.md`, then README; baseline `main`/`test`/`dev` branches are published, but application deployment and transport activation remain NO-GO |
 | [`zoolanding-image-upload`](https://github.com/LynxPardelle/zoolanding-image-upload) | Temporary-grant validation and public image upload/compression | `main` | Repo README |
 | [`zoolanding-data-dropper-lambda`](https://github.com/LynxPardelle/zoolanding-data-dropper-lambda) | Raw analytics validation and date-partitioned S3 ingestion | `main` | Repo README; hub owns the cross-platform event model |
 | [`zoolanding-quick-stats-lambda`](https://github.com/LynxPardelle/zoolanding-quick-stats-lambda) | Lightweight per-app `stats.json` reads and updates | `main` | Repo README; hub owns frontend integration |
 | [`zoolandingpage-aws-infra`](https://github.com/LynxPardelle/zoolandingpage-aws-infra) | Frontend SSR release infrastructure, OIDC publication roles, Lambda, CloudFront, and optional DNS aliases | `dev` | Repo README, runbooks, and local agent instructions |
+
+Identity boundary verified 2026-08-17 (Central Time): independent test and production identity stacks for the four new service repositories are `CREATE_COMPLETE`; their 16 total roles and exact repository/Environment/branch trust are verified. Both GitHub Environments have `AWS_ROLE_ARN`, `AWS_CLOUDFORMATION_ROLE_ARN`, and `ALARM_TOPIC_ARN` configured. This is identity-only wiring, not application deployment approval: no application stack or canonical SSM dependency exists, Integrations and Notifications still lack required operator/provider values, and the configured alarm topic has zero confirmed subscribers. All four application deployments remain NO-GO.
 
 ## Draft Repositories
 
