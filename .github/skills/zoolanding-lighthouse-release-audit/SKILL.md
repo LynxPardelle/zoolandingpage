@@ -20,7 +20,7 @@ Use this skill for performance/accessibility work that must survive local SSR, d
 
    - For local drafts, use `http://127.0.0.1:4200/?draftDomain={domain}` or the production SSR server on a free port.
    - For published testing, prefer both canonical alias URLs and `test.zoolandingpage.com.mx` URLs with `draftDomain`.
-   - For Pamela-style routes, test both `/` and named routes such as `/home`.
+   - For drafts with a named home route, test both `/` and that route.
    - For language bugs, start in one language, switch, reload, and verify SSR first paint before deferred hydration.
 
 3. Add regression coverage before fixing.
@@ -67,7 +67,6 @@ Use this skill for performance/accessibility work that must survive local SSR, d
 
 - Main testing site: `https://test.zoolandingpage.com.mx/`
 - Draft preview on testing: `https://test.zoolandingpage.com.mx/{path}?draftDomain={domain}&lang={lang}`
-- Pamela alias example: `https://pamelabetancourt.zoolandingpage.com.mx/home`
 - Local SSR: build first, then run `node dist/zoolandingpage/server/server.mjs` with `PORT` set.
 
 ## Closeout

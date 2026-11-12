@@ -10,8 +10,6 @@ Source Of Truth:
 - src/app/shared/services/runtime-data-source.service.ts
 - src/app/shared/utility/metadata-template.utility.ts
 - src/server.ts
-- drafts/pamelabetancourt.com/site-config.json
-- drafts/pamelabetancourt.com/home/page-config.json
   Confidence: High
   Last Reviewed: 2026-05-13 (Central Time)
 
@@ -31,7 +29,7 @@ Source Of Truth:
 
 - Invalid authored HTML nesting can survive SSR output but fail during production hydration with Angular `nextSibling` errors.
 - Proxy, local, or alias origins can differ from the intended canonical `https` URL, which makes raw-origin SEO fallbacks drift from page intent.
-- Multi-route pages such as Pamela can legally expose both `/` and `/home` in routing while only one of them should remain indexable in sitemap output.
+- A multi-route page can expose both `/` and `/home` in routing while only one should remain indexable in sitemap output.
 - Crawlers read the server-rendered head first. If SSR does not wait for the small SEO-critical API read, crawlers can receive unresolved `{{...}}` templates in titles, canonicals, Open Graph images, or JSON-LD.
 - A sitemap that lists parameterized base routes can invite crawlers to index incomplete pages instead of representative detail URLs.
 

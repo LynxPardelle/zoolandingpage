@@ -25,7 +25,7 @@ const createComponentsPayload = (
     overrides: Partial<{ domain: string; pageId: string }> = {},
 ): TComponentsPayload => ({
     version: 1,
-    domain: overrides.domain ?? 'pamelabetancourt.com',
+    domain: overrides.domain ?? 'example.com',
     pageId: overrides.pageId ?? 'home',
     components: Object.values(components) as TComponentPayloadEntry[],
 });
@@ -105,7 +105,7 @@ describe('RuntimeService', () => {
 
     const resolveRuntimeContext = async () => {
         const url = new URL(window.location.href);
-        const domain = 'pamelabetancourt.com';
+        const domain = 'example.com';
         const siteConfig = await loadSiteConfig(domain);
         store?.setSiteConfig(siteConfig);
 
@@ -125,10 +125,10 @@ describe('RuntimeService', () => {
     };
 
     beforeEach(() => {
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         loadSiteConfig = jasmine.createSpy('loadSiteConfig').and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 { path: '/home', pageId: 'home' },
@@ -139,7 +139,7 @@ describe('RuntimeService', () => {
         bootstrapLoad = jasmine.createSpy('load').and.callFake(async ({ domain, pageId, lang }: { domain?: string; pageId?: string; lang?: string }) => {
             const combos = lang ? {
                 version: 1,
-                domain: domain ?? 'pamelabetancourt.com',
+                domain: domain ?? 'example.com',
                 pageId: pageId ?? 'home',
                 combos: {
                     hero: ['ank-bg-primary'],
@@ -149,12 +149,12 @@ describe('RuntimeService', () => {
             store?.setCombos(combos);
 
             return {
-                domain: domain ?? 'pamelabetancourt.com',
+                domain: domain ?? 'example.com',
                 pageId: pageId ?? 'home',
                 structuredDataApplied: false,
                 pageConfig: {
                     version: 1,
-                    domain: domain ?? 'pamelabetancourt.com',
+                    domain: domain ?? 'example.com',
                     pageId: pageId ?? 'home',
                     rootIds: [`${ pageId ?? 'home' }-root`],
                     modalRootIds: [],
@@ -166,7 +166,7 @@ describe('RuntimeService', () => {
                         config: { components: [] },
                     },
                 }, {
-                    domain: domain ?? 'pamelabetancourt.com',
+                    domain: domain ?? 'example.com',
                     pageId: pageId ?? 'home',
                 }),
                 combos,
@@ -228,8 +228,8 @@ describe('RuntimeService', () => {
                 {
                     provide: DomainResolverService,
                     useValue: {
-                        resolveDomain: () => ({ domain: 'pamelabetancourt.com' }),
-                        resolveStorageKey: (suffix: string) => `pamelabetancourt-com:${ suffix }`,
+                        resolveDomain: () => ({ domain: 'example.com' }),
+                        resolveStorageKey: (suffix: string) => `example-com:${ suffix }`,
                     },
                 },
                 {
@@ -342,7 +342,7 @@ describe('RuntimeService', () => {
         const pending = service.initialize('en');
         await flushPostBootstrapBrowserWork();
 
-        expect(activate).toHaveBeenCalledWith('pamelabetancourt.com', fonts);
+        expect(activate).toHaveBeenCalledWith('example.com', fonts);
         expect(service.rootComponentsIds()).toEqual([]);
         releaseFonts?.();
         await pending;
@@ -359,7 +359,7 @@ describe('RuntimeService', () => {
         const service = TestBed.inject(RuntimeService);
 
         await service.initialize('en');
-        expect(activate).toHaveBeenCalledOnceWith('pamelabetancourt.com', fonts);
+        expect(activate).toHaveBeenCalledOnceWith('example.com', fonts);
         service.disconnect();
         service.connect({
             host: document.createElement('main'),
@@ -370,8 +370,8 @@ describe('RuntimeService', () => {
         await flushPostBootstrapBrowserWork();
 
         expect(activate.calls.allArgs()).toEqual([
-            ['pamelabetancourt.com', fonts],
-            ['pamelabetancourt.com', fonts],
+            ['example.com', fonts],
+            ['example.com', fonts],
         ]);
         expect(bootstrapLoad).toHaveBeenCalledTimes(1);
         expect(loadSiteConfig).toHaveBeenCalledTimes(1);
@@ -417,13 +417,13 @@ describe('RuntimeService', () => {
         const service = TestBed.inject(RuntimeService);
 
         await service.initialize('en');
-        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/servicios?draftDomain=example.com');
         await service.initialize('en');
 
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);
         expect(activate.calls.allArgs()).toEqual([
-            ['pamelabetancourt.com', fonts],
-            ['pamelabetancourt.com', fonts],
+            ['example.com', fonts],
+            ['example.com', fonts],
         ]);
         expect(clear).not.toHaveBeenCalled();
     });
@@ -432,11 +432,11 @@ describe('RuntimeService', () => {
         const service = TestBed.inject(RuntimeService);
         const expectedModalRootIds: string[] = [];
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         await service.initialize('es');
 
         expect(bootstrapLoad).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'home',
             lang: 'es',
             routePath: '/home',
@@ -444,7 +444,7 @@ describe('RuntimeService', () => {
         });
         expect(setCombos).toHaveBeenCalledWith({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'home',
             combos: {
                 hero: ['ank-bg-primary'],
@@ -452,11 +452,11 @@ describe('RuntimeService', () => {
         });
         expect(service.rootComponentsIds()).toEqual(['home-root']);
 
-        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/servicios?draftDomain=example.com');
         await service.initialize('es');
 
         expect(bootstrapLoad).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'servicios',
             lang: 'es',
             routePath: '/servicios',
@@ -465,7 +465,7 @@ describe('RuntimeService', () => {
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);
         expect(configureLoadingCurtain).toHaveBeenCalled();
         expect(setDraftExportContext).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'servicios',
             rootIds: ['servicios-root'],
             modalRootIds: expectedModalRootIds,
@@ -478,13 +478,13 @@ describe('RuntimeService', () => {
 
         const service = TestBed.inject(RuntimeService);
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         await service.initialize('es');
 
         expect(prefetchRoute).not.toHaveBeenCalled();
         await flushPostBootstrapBrowserWork();
 
-        expect(prefetchRoute).toHaveBeenCalledOnceWith('pamelabetancourt.com', {
+        expect(prefetchRoute).toHaveBeenCalledOnceWith('example.com', {
             pageId: 'servicios',
             lang: 'es',
             path: '/servicios',
@@ -496,7 +496,7 @@ describe('RuntimeService', () => {
         spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
         loadSiteConfig.and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 { path: '/soft-landing-china/eng', pageId: 'china', language: 'en' },
@@ -506,11 +506,11 @@ describe('RuntimeService', () => {
         });
         const service = TestBed.inject(RuntimeService);
 
-        setRuntimeUrl('/soft-landing-china/zh?draftDomain=pamelabetancourt.com&draftPageId=china&lang=en');
+        setRuntimeUrl('/soft-landing-china/zh?draftDomain=example.com&draftPageId=china&lang=en');
         await service.initialize('en');
 
         expect(bootstrapLoad).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'china',
             lang: 'en',
             routeLanguage: 'zh',
@@ -519,12 +519,12 @@ describe('RuntimeService', () => {
         });
 
         await flushPostBootstrapBrowserWork();
-        expect(prefetchRoute).toHaveBeenCalledWith('pamelabetancourt.com', {
+        expect(prefetchRoute).toHaveBeenCalledWith('example.com', {
             pageId: 'china',
             lang: 'en',
             path: '/soft-landing-china/eng',
         });
-        expect(prefetchRoute).toHaveBeenCalledWith('pamelabetancourt.com', {
+        expect(prefetchRoute).toHaveBeenCalledWith('example.com', {
             pageId: 'servicios',
             lang: 'en',
             path: '/servicios',
@@ -534,7 +534,7 @@ describe('RuntimeService', () => {
     it('clears fixed route language after popstate navigation reaches an ordinary route', async () => {
         loadSiteConfig.and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 { path: '/soft-landing-china/eng', pageId: 'china', language: 'en' },
@@ -545,7 +545,7 @@ describe('RuntimeService', () => {
         const service = TestBed.inject(RuntimeService);
         const host = document.createElement('main');
 
-        setRuntimeUrl('/soft-landing-china/zh?draftDomain=pamelabetancourt.com&draftPageId=china&lang=en');
+        setRuntimeUrl('/soft-landing-china/zh?draftDomain=example.com&draftPageId=china&lang=en');
         await service.initialize('en');
         service.connect({
             host,
@@ -556,7 +556,7 @@ describe('RuntimeService', () => {
 
         bootstrapLoad.calls.reset();
         analyticsTrack.calls.reset();
-        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com&lang=es&email=ana%40example.com#phone=525522699563');
+        setRuntimeUrl('/servicios?draftDomain=example.com&lang=es&email=ana%40example.com#phone=525522699563');
         window.dispatchEvent(new PopStateEvent('popstate'));
         await flushPostBootstrapBrowserWork();
 
@@ -565,7 +565,7 @@ describe('RuntimeService', () => {
             label: '/servicios',
         });
         expect(bootstrapLoad).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'servicios',
             lang: 'es',
             routePath: '/servicios',
@@ -576,7 +576,7 @@ describe('RuntimeService', () => {
     it('hides the boot curtain after rendered component classes are sent to Angora', async () => {
         const service = TestBed.inject(RuntimeService);
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         await service.initialize('es');
 
         expect(configureLoadingCurtain).toHaveBeenCalled();
@@ -783,7 +783,7 @@ describe('RuntimeService', () => {
             waitForCssReady.and.resolveTo(false);
             const service = TestBed.inject(RuntimeService);
 
-            setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+            setRuntimeUrl('/home?draftDomain=example.com');
             await service.initialize('es');
             await flushCssReadinessPasses();
 
@@ -814,7 +814,7 @@ describe('RuntimeService', () => {
             containsRegisteredComboClass.and.returnValue(false);
             const service = TestBed.inject(RuntimeService);
 
-            setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+            setRuntimeUrl('/home?draftDomain=example.com');
             await service.initialize('es');
             await flushCssReadinessPasses();
 
@@ -842,7 +842,7 @@ describe('RuntimeService', () => {
         );
         const service = TestBed.inject(RuntimeService);
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         await service.initialize('es');
         await flushCssReadinessPasses();
 
@@ -871,7 +871,7 @@ describe('RuntimeService', () => {
         try {
             const service = TestBed.inject(RuntimeService);
 
-            setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+            setRuntimeUrl('/home?draftDomain=example.com');
             await service.initialize('es');
             await flushCssReadinessPasses();
 
@@ -899,7 +899,7 @@ describe('RuntimeService', () => {
 
         const service = TestBed.inject(RuntimeService);
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         await service.initialize('es');
         await flushPostBootstrapBrowserWork();
 
@@ -917,7 +917,7 @@ describe('RuntimeService', () => {
 
         const service = TestBed.inject(RuntimeService);
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         await service.initialize('es');
         await flushPostBootstrapBrowserWork();
 
@@ -931,7 +931,6 @@ describe('RuntimeService', () => {
         spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
         spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
         const service = TestBed.inject(RuntimeService);
-
         setRuntimeUrl('/home?email=ana%40example.com#phone=525522699563');
         await service.initialize('es');
 
@@ -1078,7 +1077,7 @@ describe('RuntimeService', () => {
         const service = TestBed.inject(RuntimeService);
         const host = document.createElement('div');
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         await service.initialize('es');
         expect(bootstrapLoad.calls.count()).toBe(1);
 
@@ -1105,7 +1104,7 @@ describe('RuntimeService', () => {
             const createBootPayload = () => {
                 const combos = lang ? {
                     version: 1,
-                    domain: domain ?? 'pamelabetancourt.com',
+                    domain: domain ?? 'example.com',
                     pageId: pageId ?? 'home',
                     combos: {
                         hero: ['ank-bg-primary'],
@@ -1115,12 +1114,12 @@ describe('RuntimeService', () => {
                 store?.setCombos(combos);
 
                 return {
-                    domain: domain ?? 'pamelabetancourt.com',
+                    domain: domain ?? 'example.com',
                     pageId: pageId ?? 'home',
                     structuredDataApplied: false,
                     pageConfig: {
                         version: 1,
-                        domain: domain ?? 'pamelabetancourt.com',
+                        domain: domain ?? 'example.com',
                         pageId: pageId ?? 'home',
                         rootIds: [`${ pageId ?? 'home' }-root`],
                         modalRootIds: [],
@@ -1132,7 +1131,7 @@ describe('RuntimeService', () => {
                             config: { components: [] },
                         },
                     }, {
-                        domain: domain ?? 'pamelabetancourt.com',
+                        domain: domain ?? 'example.com',
                         pageId: pageId ?? 'home',
                     }),
                     combos,
@@ -1150,14 +1149,14 @@ describe('RuntimeService', () => {
             return Promise.resolve(createBootPayload());
         });
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         const firstInitialize = service.initialize('es');
         await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 
         expect(hasResolveFirstLoad).withContext('first draft load resolver should be captured').toBeTrue();
         expect(bootstrapLoad.calls.allArgs()).toEqual([[
             {
-                domain: 'pamelabetancourt.com',
+                domain: 'example.com',
                 pageId: 'home',
                 lang: 'es',
                 routePath: '/home',
@@ -1165,7 +1164,7 @@ describe('RuntimeService', () => {
             },
         ]]);
 
-        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/servicios?draftDomain=example.com');
         const secondInitialize = service.initialize('es');
 
         resolveFirstLoad();
@@ -1173,14 +1172,14 @@ describe('RuntimeService', () => {
 
         expect(bootstrapLoad.calls.allArgs()).toEqual([
             [{
-                domain: 'pamelabetancourt.com',
+                domain: 'example.com',
                 pageId: 'home',
                 lang: 'es',
                 routePath: '/home',
                 routeParams: undefined,
             }],
             [{
-                domain: 'pamelabetancourt.com',
+                domain: 'example.com',
                 pageId: 'servicios',
                 lang: 'es',
                 routePath: '/servicios',
@@ -1189,7 +1188,7 @@ describe('RuntimeService', () => {
         ]);
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);
         expect(setDraftExportContext).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'servicios',
             rootIds: ['servicios-root'],
             modalRootIds: expectedModalRootIds,
@@ -1229,7 +1228,7 @@ describe('RuntimeService', () => {
         }));
         loadSiteConfig.and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 { path: '/acceso', pageId: 'acceso' },
@@ -1264,7 +1263,7 @@ describe('RuntimeService', () => {
             site: {},
         } as any);
 
-        setRuntimeUrl('/admin/blog?draftDomain=pamelabetancourt.com&lang=es');
+        setRuntimeUrl('/admin/blog?draftDomain=example.com&lang=es');
         service.connect({
             host: document.createElement('main'),
             destroyRef: { destroyed: false, onDestroy: () => () => undefined } as any,
@@ -1276,11 +1275,11 @@ describe('RuntimeService', () => {
         }
 
         expect(window.location.pathname).toBe('/acceso');
-        expect(window.location.search).toContain('draftDomain=pamelabetancourt.com');
+        expect(window.location.search).toContain('draftDomain=example.com');
         expect(service.rootComponentsIds()).toEqual(['acceso-root']);
         expect(bootstrapLoad.calls.allArgs()).toEqual([[
             {
-                domain: 'pamelabetancourt.com',
+                domain: 'example.com',
                 pageId: 'acceso',
                 lang: 'es',
                 routePath: '/acceso',
@@ -1297,7 +1296,7 @@ describe('RuntimeService', () => {
         }));
         loadSiteConfig.and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 { path: '/acceso', pageId: 'acceso' },
@@ -1332,7 +1331,7 @@ describe('RuntimeService', () => {
             site: {},
         } as any);
 
-        setRuntimeUrl('/admin/blog?draftDomain=pamelabetancourt.com&lang=es');
+        setRuntimeUrl('/admin/blog?draftDomain=example.com&lang=es');
         await service.initialize('es');
         service.connect({
             host: document.createElement('main'),
@@ -1345,10 +1344,10 @@ describe('RuntimeService', () => {
         }
 
         expect(window.location.pathname).toBe('/acceso');
-        expect(window.location.search).toContain('draftDomain=pamelabetancourt.com');
+        expect(window.location.search).toContain('draftDomain=example.com');
         expect(service.rootComponentsIds()).toEqual(['acceso-root']);
         expect(bootstrapLoad).toHaveBeenCalledOnceWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'acceso',
             lang: 'es',
             routePath: '/acceso',
@@ -1472,7 +1471,7 @@ describe('RuntimeService', () => {
         ];
         loadSiteConfig.and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [{ path: '/home', pageId: 'home' }],
             runtime: {
@@ -1481,11 +1480,11 @@ describe('RuntimeService', () => {
             site: {},
         } as any);
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         await service.initialize('es');
 
         expect(runtimeDataSourcesStart).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'home',
             dataSources,
             mode: 'all',
@@ -1522,7 +1521,7 @@ describe('RuntimeService', () => {
         ];
         loadSiteConfig.and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 {
@@ -1557,14 +1556,14 @@ describe('RuntimeService', () => {
             site: {},
         } as any);
 
-        setRuntimeUrl('/mi-cuenta?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/mi-cuenta?draftDomain=example.com');
         const initialize = service.initialize('es');
         for (let attempt = 0; attempt < 8 && !runtimeDataSourcesStart.calls.any(); attempt++) {
             await flushPostBootstrapBrowserWork();
         }
 
         expect(runtimeDataSourcesStart).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'mi-cuenta',
             dataSources: authAdminDataSources,
             mode: 'all',
@@ -1607,7 +1606,7 @@ describe('RuntimeService', () => {
 
         const protectedSiteConfig = {
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 {
@@ -1644,7 +1643,7 @@ describe('RuntimeService', () => {
         loadSiteConfig.and.resolveTo(protectedSiteConfig);
         store.setSiteConfig(protectedSiteConfig);
         draftRuntimeResolveActiveDraftContext.and.resolveTo({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'admin-blog-articulo-editor',
             path: '/admin/blog/articulos/art_20260623/editor',
             route: protectedSiteConfig.routes[0],
@@ -1652,11 +1651,11 @@ describe('RuntimeService', () => {
             explicitPageId: false,
         });
 
-        setRuntimeUrl('/admin/blog/articulos/art_20260623/editor?draftDomain=pamelabetancourt.com&lang=es');
+        setRuntimeUrl('/admin/blog/articulos/art_20260623/editor?draftDomain=example.com&lang=es');
         await service.initialize('es');
 
         expect(runtimeDataSourcesStart).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'admin-blog-articulo-editor',
             routeParams: { id: 'art_20260623' },
             dataSources: authAdminDataSources,
@@ -1702,7 +1701,7 @@ describe('RuntimeService', () => {
         ];
         loadSiteConfig.and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 {
@@ -1737,7 +1736,7 @@ describe('RuntimeService', () => {
             site: {},
         } as any);
 
-        setRuntimeUrl('/mi-cuenta?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/mi-cuenta?draftDomain=example.com');
         const initialize = service.initialize('es');
         for (let attempt = 0; attempt < 8 && !(window.fetch as jasmine.Spy).calls.any(); attempt++) {
             await flushPostBootstrapBrowserWork();
@@ -1770,7 +1769,7 @@ describe('RuntimeService', () => {
         spyOn(window, 'fetch').and.returnValue(new Promise<Response>(() => undefined));
         const protectedSiteConfig = {
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 {
@@ -1806,7 +1805,7 @@ describe('RuntimeService', () => {
         loadSiteConfig.and.resolveTo(protectedSiteConfig);
         store.setSiteConfig(protectedSiteConfig);
         draftRuntimeResolveActiveDraftContext.and.resolveTo({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'admin-blog-articulo-editor',
             path: '/admin/blog/articulos/art_20260623/editor',
             route: {
@@ -1822,7 +1821,7 @@ describe('RuntimeService', () => {
             explicitPageId: false,
         });
 
-        setRuntimeUrl('/admin/blog/articulos/art_20260623/editor?draftDomain=pamelabetancourt.com&lang=es');
+        setRuntimeUrl('/admin/blog/articulos/art_20260623/editor?draftDomain=example.com&lang=es');
         await service.initialize('es');
         service.connect({
             host: document.createElement('main'),
@@ -1840,7 +1839,7 @@ describe('RuntimeService', () => {
         });
         expect(service.rootComponentsIds()).toEqual([]);
         expect(window.location.pathname).toBe('/acceso');
-        expect(window.location.search).toContain('draftDomain=pamelabetancourt.com');
+        expect(window.location.search).toContain('draftDomain=example.com');
         expect(bootstrapLoad).not.toHaveBeenCalled();
     });
 
@@ -1850,7 +1849,7 @@ describe('RuntimeService', () => {
         const privateRouteLoading = () => (service as any).privateRouteLoading?.();
         loadSiteConfig.and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [
                 {
@@ -1884,7 +1883,7 @@ describe('RuntimeService', () => {
             site: {},
         } as any);
         draftRuntimeResolveActiveDraftContext.and.resolveTo({
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'admin-blog-articulo-editor',
             path: '/admin/blog/articulos/art_20260623/editor',
             route: {
@@ -1924,7 +1923,7 @@ describe('RuntimeService', () => {
         ];
         loadSiteConfig.and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             defaultPageId: 'home',
             routes: [{ path: '/home', pageId: 'home' }],
             runtime: {
@@ -1933,11 +1932,11 @@ describe('RuntimeService', () => {
             site: {},
         } as any);
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=example.com');
         await service.initialize('es');
         store.setPageConfig({
             version: 1,
-            domain: 'pamelabetancourt.com',
+            domain: 'example.com',
             pageId: 'home',
             rootIds: ['home-root'],
             modalRootIds: [],
@@ -1951,7 +1950,7 @@ describe('RuntimeService', () => {
 
         runtimeDataSourcesMarkInitialSourcesLoading.calls.reset();
         bootstrapLoad.calls.reset();
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com&type=electric');
+        setRuntimeUrl('/home?draftDomain=example.com&type=electric');
         window.dispatchEvent(new PopStateEvent('popstate'));
         await flushPostBootstrapBrowserWork();
 
@@ -1978,7 +1977,7 @@ describe('RuntimeService', () => {
         });
         draftRuntimeResolveActiveDraftContext.and.callFake(() => new Promise((resolve) => {
             releaseContext = () => resolve({
-                domain: 'pamelabetancourt.com',
+                domain: 'example.com',
                 pageId: 'home',
                 path: '/home',
                 route: { path: '/home', pageId: 'home' },

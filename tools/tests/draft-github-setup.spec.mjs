@@ -121,7 +121,7 @@ async function createTrackedTestOnlyDraft(t, {
 }
 
 test('repoNameForDomain maps domains to draft repo names', () => {
-  assert.equal(repoNameForDomain('pamelabetancourt.com'), 'draft-pamelabetancourt-com');
+  assert.equal(repoNameForDomain('example.com'), 'draft-example-com');
   assert.equal(
     repoNameForDomain('pokeapi-demo.zoolandingpage.com.mx'),
     'draft-pokeapi-demo-zoolandingpage-com-mx',
@@ -129,7 +129,7 @@ test('repoNameForDomain maps domains to draft repo names', () => {
 });
 
 test('testAliasesFor does not create dedicated test aliases by default', () => {
-  assert.deepEqual(testAliasesFor('pamelabetancourt.com', ['pamelabetancourt.zoolandingpage.com.mx']), [
+  assert.deepEqual(testAliasesFor('example.com', ['example.zoolandingpage.com.mx']), [
   ]);
 });
 

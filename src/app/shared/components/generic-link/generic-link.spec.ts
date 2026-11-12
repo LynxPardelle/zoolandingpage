@@ -8,7 +8,7 @@ import { resolveNavigationTarget } from '../../utility/navigation/navigation-tar
 import { GenericLink } from './generic-link';
 
 describe('GenericLink', () => {
-  const draftPreviewUrl = '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true';
+  const draftPreviewUrl = '/home?draftDomain=example.com&debugWorkspace=true';
   let component: GenericLink;
   let fixture: ComponentFixture<GenericLink>;
   let store: ConfigStoreService;
@@ -109,7 +109,7 @@ describe('GenericLink', () => {
     resetDraftPreviewUrl();
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
+      href: '/servicios?draftDomain=example.com&debugWorkspace=true',
       text: 'Servicios',
       target: '_blank',
     });
@@ -120,11 +120,11 @@ describe('GenericLink', () => {
 
     expect(component.target()).toBeNull();
     expect(anchor.getAttribute('target')).toBeNull();
-    expect(component.href()).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(component.href()).toBe('/servicios?draftDomain=example.com&debugWorkspace=true');
   });
 
   it('should preserve debugWorkspace on internal hrefs', () => {
-    const href = resolveDraftPreviewHref('/acerca-de-mi?draftDomain=pamelabetancourt.com');
+    const href = resolveDraftPreviewHref('/acerca-de-mi?draftDomain=example.com');
     resetDraftPreviewUrl();
     fixture.componentRef.setInput('config', {
       id: 'spec',
@@ -136,14 +136,14 @@ describe('GenericLink', () => {
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
 
-    expect(component.href()).toBe('/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(component.href()).toBe('/acerca-de-mi?draftDomain=example.com&debugWorkspace=true');
     expect(component.routableInternalHref()).toBeTrue();
     expect(component.routerLinkPath()).toBe('/acerca-de-mi');
     expect(component.routerLinkQueryParams()).toEqual({
-      draftDomain: 'pamelabetancourt.com',
+      draftDomain: 'example.com',
       debugWorkspace: 'true',
     });
-    expect(anchor.getAttribute('href')).toContain('/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(anchor.getAttribute('href')).toContain('/acerca-de-mi?draftDomain=example.com&debugWorkspace=true');
   });
 
   it('should carry the active draftDomain onto internal hrefs that omit it', () => {
@@ -159,12 +159,12 @@ describe('GenericLink', () => {
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
 
-    expect(component.href()).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(component.href()).toBe('/servicios?draftDomain=example.com&debugWorkspace=true');
     expect(component.routerLinkQueryParams()).toEqual({
-      draftDomain: 'pamelabetancourt.com',
+      draftDomain: 'example.com',
       debugWorkspace: 'true',
     });
-    expect(anchor.getAttribute('href')).toContain('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(anchor.getAttribute('href')).toContain('/servicios?draftDomain=example.com&debugWorkspace=true');
   });
 
   it('should use the request URL to carry draft params during SSR', () => {
@@ -184,7 +184,7 @@ describe('GenericLink', () => {
   });
 
   it('should preserve the active language on internal hrefs', () => {
-    const previewUrl = '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=es';
+    const previewUrl = '/home?draftDomain=example.com&debugWorkspace=true&lang=es';
     const href = resolveDraftPreviewHref('/servicios', previewUrl);
     resetDraftPreviewUrl(previewUrl);
     fixture.componentRef.setInput('config', {
@@ -197,17 +197,17 @@ describe('GenericLink', () => {
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
 
-    expect(component.href()).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=es');
+    expect(component.href()).toBe('/servicios?draftDomain=example.com&debugWorkspace=true&lang=es');
     expect(component.routerLinkQueryParams()).toEqual({
-      draftDomain: 'pamelabetancourt.com',
+      draftDomain: 'example.com',
       debugWorkspace: 'true',
       lang: 'es',
     });
-    expect(anchor.getAttribute('href')).toContain('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=es');
+    expect(anchor.getAttribute('href')).toContain('/servicios?draftDomain=example.com&debugWorkspace=true&lang=es');
   });
 
   it('can omit only the inherited language query parameter for fixed-language route links', () => {
-    const previewUrl = '/soft-landing-china/eng?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=zh';
+    const previewUrl = '/soft-landing-china/eng?draftDomain=example.com&debugWorkspace=true&lang=zh';
     resetDraftPreviewUrl(previewUrl);
     fixture.componentRef.setInput('config', {
       id: 'fixed-language-switch',
@@ -219,9 +219,9 @@ describe('GenericLink', () => {
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
 
-    expect(component.href()).toBe('/soft-landing-china/zh?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(component.href()).toBe('/soft-landing-china/zh?draftDomain=example.com&debugWorkspace=true');
     expect(component.routerLinkQueryParams()).toEqual({
-      draftDomain: 'pamelabetancourt.com',
+      draftDomain: 'example.com',
       debugWorkspace: 'true',
     });
     expect(anchor.getAttribute('href')).not.toContain('lang=');
@@ -258,7 +258,7 @@ describe('GenericLink', () => {
   });
 
   it('should normalize encoded unicode internal hrefs without double-encoding them', () => {
-    const href = resolveDraftPreviewHref('/cont%C3%A1ctame?draftDomain=pamelabetancourt.com');
+    const href = resolveDraftPreviewHref('/cont%C3%A1ctame?draftDomain=example.com');
     resetDraftPreviewUrl();
     fixture.componentRef.setInput('config', {
       id: 'spec',
@@ -270,13 +270,13 @@ describe('GenericLink', () => {
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
 
-    expect(component.href()).toBe('/cont%C3%A1ctame?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(component.href()).toBe('/cont%C3%A1ctame?draftDomain=example.com&debugWorkspace=true');
     expect(component.routerLinkPath()).toBe('/contáctame');
     expect(component.routerLinkQueryParams()).toEqual({
-      draftDomain: 'pamelabetancourt.com',
+      draftDomain: 'example.com',
       debugWorkspace: 'true',
     });
-    expect(anchor.getAttribute('href')).toContain('/cont%C3%A1ctame?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(anchor.getAttribute('href')).toContain('/cont%C3%A1ctame?draftDomain=example.com&debugWorkspace=true');
     expect(anchor.getAttribute('href')).not.toContain('%25C3%25A1');
   });
 
@@ -299,7 +299,7 @@ describe('GenericLink', () => {
     resetDraftPreviewUrl();
     store.setSiteConfig({
       version: 1,
-      domain: 'pamelabetancourt.com',
+      domain: 'example.com',
       routes: [{ path: '/home', pageId: 'home' }, { path: '/servicios', pageId: 'servicios' }],
       runtime: {
         navigation: {
@@ -314,7 +314,7 @@ describe('GenericLink', () => {
     const pushState = spyOn(window.history, 'pushState').and.callThrough();
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
+      href: '/servicios?draftDomain=example.com&debugWorkspace=true',
       text: 'Servicios',
     });
     resetDraftPreviewUrl();
@@ -323,7 +323,7 @@ describe('GenericLink', () => {
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
     anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=example.com&debugWorkspace=true');
     expect(scrollTo).toHaveBeenCalledTimes(1);
     expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
   });
@@ -332,7 +332,7 @@ describe('GenericLink', () => {
     resetDraftPreviewUrl();
     store.setSiteConfig({
       version: 1,
-      domain: 'pamelabetancourt.com',
+      domain: 'example.com',
       routes: [{ path: '/home', pageId: 'home' }, { path: '/servicios', pageId: 'servicios' }],
       runtime: {
         navigation: {
@@ -347,7 +347,7 @@ describe('GenericLink', () => {
     const pushState = spyOn(window.history, 'pushState').and.callThrough();
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
+      href: '/servicios?draftDomain=example.com&debugWorkspace=true',
       text: 'Servicios',
       scrollRestoration: {
         mode: 'top',
@@ -359,7 +359,7 @@ describe('GenericLink', () => {
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
     anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=example.com&debugWorkspace=true');
     expect(scrollTo).toHaveBeenCalledTimes(1);
     expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
   });

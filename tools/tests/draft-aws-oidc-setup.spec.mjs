@@ -21,8 +21,8 @@ const oidcSetupPath = new URL('../draft-aws-oidc-setup.mjs', import.meta.url);
 test('domainSlug and roleNameFor create stable draft role names', () => {
   assert.equal(domainSlug('PokeAPI-Demo.zoolandingpage.com.mx'), 'pokeapi-demo-zoolandingpage-com-mx');
   assert.equal(
-    roleNameFor('pamelabetancourt.com', 'production'),
-    'draft-pamelabetancourt-com-production-deploy',
+    roleNameFor('example.com', 'production'),
+    'draft-example-com-production-deploy',
   );
 });
 
@@ -66,13 +66,13 @@ test('deployment role inventory never creates production for a test-only draft',
 test('trustPolicy scopes GitHub OIDC to repo, environment, and exact deployment branch', () => {
   const policy = trustPolicy({
     providerArn: 'arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com',
-    subject: 'repo:LynxPardelle/draft-pamelabetancourt-com:environment:test',
+    subject: 'repo:LynxPardelle/draft-example-com:environment:test',
     environment: 'test',
   });
 
   assert.equal(
     policy.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:sub'],
-    'repo:LynxPardelle/draft-pamelabetancourt-com:environment:test',
+    'repo:LynxPardelle/draft-example-com:environment:test',
   );
   assert.equal(policy.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
   assert.equal(
@@ -82,7 +82,7 @@ test('trustPolicy scopes GitHub OIDC to repo, environment, and exact deployment 
 
   const production = trustPolicy({
     providerArn: 'arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com',
-    subject: 'repo:LynxPardelle/draft-pamelabetancourt-com:environment:production',
+    subject: 'repo:LynxPardelle/draft-example-com:environment:production',
     environment: 'production',
   });
   assert.equal(
@@ -92,7 +92,7 @@ test('trustPolicy scopes GitHub OIDC to repo, environment, and exact deployment 
   assert.throws(
     () => trustPolicy({
       providerArn: 'arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com',
-      subject: 'repo:LynxPardelle/draft-pamelabetancourt-com:environment:*',
+      subject: 'repo:LynxPardelle/draft-example-com:environment:*',
       environment: 'test',
     }),
     /invalid_github_oidc_subject/,
@@ -222,10 +222,10 @@ test('readRepositoryOidcSubject uses the exact immutable GitHub prefix for an en
 });
 
 test('readRepositoryOidcSubject trusts an exact legacy prefix returned by the canonical API', async () => {
-  const subjectPrefix = 'repo:LynxPardelle/draft-pamelabetancourt-com';
+  const subjectPrefix = 'repo:LynxPardelle/draft-example-com';
   const identity = await oidcSetup.readRepositoryOidcSubject({
     owner: 'LynxPardelle',
-    repo: 'draft-pamelabetancourt-com',
+    repo: 'draft-example-com',
     environment: 'test',
     ghJsonFn: async () => ({ use_default: true, sub_claim_prefix: subjectPrefix }),
   });
@@ -309,7 +309,7 @@ test('readRepositoryOidcSubject falls back to names only with canonical legacy e
   const calls = [];
   const identity = await oidcSetup.readRepositoryOidcSubject({
     owner: 'LynxPardelle',
-    repo: 'draft-pamelabetancourt-com',
+    repo: 'draft-example-com',
     environment: 'production',
     ghJsonFn: async args => {
       calls.push(args);
@@ -318,8 +318,8 @@ test('readRepositoryOidcSubject falls back to names only with canonical legacy e
       }
       return {
         id: 789012,
-        name: 'draft-pamelabetancourt-com',
-        full_name: 'LynxPardelle/draft-pamelabetancourt-com',
+        name: 'draft-example-com',
+        full_name: 'LynxPardelle/draft-example-com',
         created_at: '2026-07-01T12:00:00Z',
         owner: { id: 123456, login: 'LynxPardelle' },
       };
@@ -327,8 +327,8 @@ test('readRepositoryOidcSubject falls back to names only with canonical legacy e
   });
 
   assert.deepEqual(identity, {
-    subject: 'repo:LynxPardelle/draft-pamelabetancourt-com:environment:production',
-    subjectPrefix: 'repo:LynxPardelle/draft-pamelabetancourt-com',
+    subject: 'repo:LynxPardelle/draft-example-com:environment:production',
+    subjectPrefix: 'repo:LynxPardelle/draft-example-com',
     source: 'github-legacy-default',
     evidence: {
       useDefault: true,
@@ -337,7 +337,7 @@ test('readRepositoryOidcSubject falls back to names only with canonical legacy e
     },
   });
   assert.equal(calls.length, 2);
-  assert.equal(calls[1][1], '/repos/LynxPardelle/draft-pamelabetancourt-com');
+  assert.equal(calls[1][1], '/repos/LynxPardelle/draft-example-com');
 });
 
 test('readRepositoryOidcSubject refuses an unevidenced name-based fallback', async () => {
