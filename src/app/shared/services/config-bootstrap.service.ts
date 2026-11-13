@@ -41,6 +41,7 @@ import { RuntimeConfigService } from './runtime-config.service';
 import { StructuredDataService } from './structured-data.service';
 import { VariableStoreService } from './variable-store.service';
 import {isFixedJournal,journalArticles,journalView,journalSeries} from '../utility/content-hub/fixed-journal-public';
+import { sharedZoositeArticleCanonical } from '../utility/content-hub/shared-blog-canonical';
 
 export type TBootstrapResult = {
     readonly domain: string;
@@ -693,6 +694,8 @@ export class ConfigBootstrapService {
     ): string {
         const path = this.cleanString(article.canonicalPath) || this.cleanString(article.path);
         if (!path) return '';
+        const sharedCanonical = sharedZoositeArticleCanonical(siteConfig, path);
+        if (sharedCanonical) return sharedCanonical;
 
         const origin = this.cleanString(siteConfig?.site?.seo?.canonicalOrigin).replace(/\/+$/, '');
         if (!origin) return path;

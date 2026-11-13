@@ -1,4 +1,5 @@
 import {isFixedJournal, journalArticles, journalAlternatePaths, JOURNAL_SERIES} from './app/shared/utility/content-hub/fixed-journal-public';
+import { sharedZoositeArticleCanonical } from './app/shared/utility/content-hub/shared-blog-canonical';
 import {
     AngularNodeAppEngine,
     createNodeRequestHandler,
@@ -347,6 +348,9 @@ type TLocalSiteConfig = Record<string, unknown> & {
 type TContentHubRuntimeConfig = {
   readonly localePolicy?: 'published-only';
   readonly hubId?: string;
+  readonly ownerDraftDomain?: string;
+  readonly source?: string;
+  readonly canonicalMode?: string;
   readonly routeBasePath?: string;
   readonly listPath?: string;
   readonly defaultLocale?: string;
@@ -3192,6 +3196,10 @@ function resolveCanonicalHeadUrl(
   const isCategoryFilterPath = isContentHubCategoryFilterPath(contentHubSiteConfig, req.path, lang);
   const usesRequestCanonical = isTagFilterPath || isCategoryFilterPath;
   const configuredCanonical = usesRequestCanonical ? '' : resolveLocalizedSeoString(pageConfig?.seo?.canonical, lang);
+  const sharedCanonical = sharedZoositeArticleCanonical(contentHubSiteConfig, normalizeRoutePath(req.path));
+  if (sharedCanonical && configuredCanonical === sharedCanonical) {
+    return sharedCanonical;
+  }
   const rawCanonical = usesRequestCanonical
     ? new URL(normalizeRoutePath(req.path), `${origin}/`).toString()
     : configuredCanonical && !configuredCanonical.includes('{{')
@@ -3463,6 +3471,10 @@ function fixedJournalArticle(siteConfig: TLocalSiteConfig | null, article: TCont
 }
 
 function articleCanonicalUrl(article: TContentHubPublicArticle, origin: string, host: string, siteConfig: TLocalSiteConfig | null): string {
+  const sharedCanonical = sharedZoositeArticleCanonical(siteConfig, normalizeRoutePath(article.canonicalPath || article.path));
+  if (sharedCanonical) {
+    return sharedCanonical;
+  }
   const url = resolveEffectiveCanonicalUrl(new URL(normalizeRoutePath(article.canonicalPath || article.path), origin).href, origin, host, siteConfig);
   return fixedJournalArticle(siteConfig, article) ? addLangParam(url, cleanString(article.locale)) : url;
 }
