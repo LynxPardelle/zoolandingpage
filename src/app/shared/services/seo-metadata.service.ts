@@ -12,6 +12,7 @@ import { VariableStoreService } from './variable-store.service';
 import { ConfigStoreService } from './config-store.service';
 import { ProtectedOriginService } from './protected-origin.service';
 import {isFixedJournal, journalAlternatePaths} from '../utility/content-hub/fixed-journal-public';
+import { sharedZoositeArticleCanonical } from '../utility/content-hub/shared-blog-canonical';
 
 const AD_CANONICAL_QUERY_PARAMS = new Set([
     'gclid',
@@ -84,7 +85,8 @@ export class SeoMetadataService {
                 ? `${ origin }${ pathname }`
                 : this.resolveLocalizedText(seo?.canonical, lang) || url;
             const suppressCanonical = seo?.canonicalMode === 'none';
-            const canonicalUrl = this.resolveEffectiveCanonicalUrl(
+            const sharedCanonical = sharedZoositeArticleCanonical(this.configStore.siteConfig(), pathname);
+            const canonicalUrl = sharedCanonical && rawCanonicalUrl === sharedCanonical ? sharedCanonical : this.resolveEffectiveCanonicalUrl(
                 rawCanonicalUrl,
                 origin,
                 siteSeo,
