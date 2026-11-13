@@ -41,7 +41,7 @@ import { RuntimeConfigService } from './runtime-config.service';
 import { StructuredDataService } from './structured-data.service';
 import { VariableStoreService } from './variable-store.service';
 import {isFixedJournal,journalArticles,journalView,journalSeries} from '../utility/content-hub/fixed-journal-public';
-import { sharedZoositeArticleCanonical } from '../utility/content-hub/shared-blog-canonical';
+import { resolveSharedContentHubArticleSeo, type TSharedContentHubArticleSeo } from '../utility/content-hub/shared-blog-canonical';
 
 export type TBootstrapResult = {
     readonly domain: string;
@@ -377,8 +377,9 @@ export class ConfigBootstrapService {
         const i18nPayload = await this.loadI18n(domain, pageId, lang, sourceOptions);
         this.store.setI18n(i18nPayload);
 
-        const seo = this.buildContentHubSeo(pageConfig?.seo ?? null, contentHubRuntime.currentArticle, siteConfig, opts?.routePath, lang);
-        const structuredData = this.buildContentHubStructuredData(pageConfig?.structuredData ?? null, contentHubRuntime.currentArticle, siteConfig);
+        const sharedSeo = resolveSharedContentHubArticleSeo(siteConfig, opts?.routePath ?? '', lang, contentHubRuntime.currentArticle?.articleId);
+        const seo = this.buildContentHubSeo(pageConfig?.seo ?? null, contentHubRuntime.currentArticle, siteConfig, opts?.routePath, lang, sharedSeo);
+        const structuredData = this.buildContentHubStructuredData(pageConfig?.structuredData ?? null, contentHubRuntime.currentArticle, siteConfig, sharedSeo?.canonical);
         const loadedAnalytics = pageConfig?.analytics ?? null;
         const analytics = this.buildResolvedAnalyticsConfig(
             this.store.siteConfig()?.runtime?.analytics,
@@ -614,6 +615,7 @@ export class ConfigBootstrapService {
         siteConfig: TDraftSiteConfigPayload | null,
         routePath?: string,
         language?: string,
+        sharedSeo?: TSharedContentHubArticleSeo | null,
     ): TSeoPayload | null {
         const parts=normalizeDraftRoutePath(routePath).split('/').filter(Boolean);
         const series=!article && siteConfig?.runtime?.contentHubs?.some(isFixedJournal) && parts.length===2 && parts[0]==='the-journal'
@@ -623,10 +625,10 @@ export class ConfigBootstrapService {
             canonical.searchParams.set('lang',language??'en');
             return {...pageSeo,title:series.title+' | The Journal',canonical:canonical.href};
         }
-        if (!article) return pageSeo;
+        if (!article) return sharedSeo ? { ...pageSeo, ...sharedSeo } : pageSeo;
         const title = this.cleanString(article.title) || pageSeo?.title;
         const description = this.cleanString(article.summary) || pageSeo?.description;
-        const canonical = this.resolveContentHubCanonicalUrl(article, siteConfig) || pageSeo?.canonical;
+        const canonical = sharedSeo?.canonical || this.resolveContentHubCanonicalUrl(article, siteConfig) || pageSeo?.canonical;
         const strict=siteConfig?.runtime?.contentHubs?.some(isFixedJournal) && article.path.startsWith('/the-journal/');
         const image = strict&&article.imageSrc?new URL(article.imageSrc,String(siteConfig?.site?.seo?.canonicalOrigin||'https://thehairnarrative.com')).href:this.resolveContentHubSocialImage(siteConfig, pageSeo);
         const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? pageSeo.openGraph : {};
@@ -637,7 +639,7 @@ export class ConfigBootstrapService {
             description,
             canonical,
             keywords: Array.isArray(article.tags) && article.tags.length > 0 ? article.tags : pageSeo?.keywords,
-            robots: this.cleanString(article.robots) || pageSeo?.robots,
+            robots: sharedSeo?.robots || this.cleanString(article.robots) || pageSeo?.robots,
             ...(strict?{twitter:{card:'summary_large_image',title,description,image}}:{}),
             openGraph: {
                 ...pageOpenGraph,
@@ -654,9 +656,10 @@ export class ConfigBootstrapService {
         pageStructuredData: TStructuredDataPayload | null,
         article: TContentHubRuntimeArticleSummary | null,
         siteConfig: TDraftSiteConfigPayload | null,
+        sharedCanonical?: string,
     ): TStructuredDataPayload | null {
         if (!article) return pageStructuredData;
-        const canonical = this.resolveContentHubCanonicalUrl(article, siteConfig);
+        const canonical = sharedCanonical || this.resolveContentHubCanonicalUrl(article, siteConfig);
         const strict=siteConfig?.runtime?.contentHubs?.some(isFixedJournal) && article.path.startsWith('/the-journal/');
         const image = strict&&article.imageSrc?new URL(article.imageSrc,String(siteConfig?.site?.seo?.canonicalOrigin||'https://thehairnarrative.com')).href:this.resolveContentHubSocialImage(siteConfig);
         const publisherName = this.cleanString(siteConfig?.site?.seo?.siteName) || this.cleanString(siteConfig?.domain);
@@ -694,9 +697,6 @@ export class ConfigBootstrapService {
     ): string {
         const path = this.cleanString(article.canonicalPath) || this.cleanString(article.path);
         if (!path) return '';
-        const sharedCanonical = sharedZoositeArticleCanonical(siteConfig, path);
-        if (sharedCanonical) return sharedCanonical;
-
         const origin = this.cleanString(siteConfig?.site?.seo?.canonicalOrigin).replace(/\/+$/, '');
         if (!origin) return path;
 
