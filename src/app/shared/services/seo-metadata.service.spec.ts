@@ -297,6 +297,21 @@ describe('SeoMetadataService', () => {
         expect(canonicals()).toEqual([canonical]);
         expect(robots()).toBe('noindex,follow');
 
+        const store = TestBed.inject(ConfigStoreService);
+        const current = store.siteConfig()!;
+        const hub = current.runtime!.contentHubs![0];
+        const article = (hub.publicArticles as readonly { articleId: string }[])[0];
+        store.setSiteConfig({
+            ...current, runtime: { ...current.runtime, contentHubs: [{
+                ...hub, publicArticles: [{ ...article, locale: 'es', status: 'published', title: 'Shared article',
+                    path, publishedAt: '2026-11-13T12:00:00Z', primarySite: domain, robots: 'index,follow' }],
+            }] },
+        });
+        const primaryCanonical = `https://${ domain }${ path }`;
+        service.apply('es', { canonical, robots: 'noindex,follow' });
+        expect(canonicals()).toEqual([primaryCanonical]);
+        expect(robots()).toBe('index,follow');
+
         location.pathname = '/blog/web/own-article';
         service.apply('es', { canonical: `https://${ domain }${ location.pathname }`, robots: 'index,follow' });
 

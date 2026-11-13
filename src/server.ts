@@ -363,6 +363,7 @@ type TContentHubPublicCollection<T> = readonly T[] | {
 };
 
 type TContentHubPublicArticle = {
+  readonly primarySite?: string;
   readonly imageSrc?: string;
   readonly imageAlt?: string;
   readonly articleId?: string;
@@ -2304,7 +2305,7 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
   const ownerCanonicalPaths = new Set<string>();
   for (const path of indexedPaths) {
     const sharedSeo = resolveSharedContentHubArticleSeo(siteConfig, path, lang);
-    if (sharedSeo) {
+    if (sharedSeo?.robots.startsWith('noindex')) {
       sharedPaths.add(path);
       ownerCanonicalPaths.add(normalizeRoutePath(new URL(sharedSeo.canonical).pathname));
     }

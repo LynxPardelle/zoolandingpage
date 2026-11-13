@@ -116,6 +116,7 @@ export type TContentHubRuntimeArticleLocalization = {
 };
 
 export type TContentHubRuntimeArticleSummary = {
+    readonly primarySite?: 'zoositioweb.com.mx' | 'zooberiahsystems.com';
     readonly articleId: TContentHubArticleId;
     readonly locale: TContentHubLocale;
     readonly status: 'published';
