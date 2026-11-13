@@ -98,10 +98,14 @@ describe('ValueOrchestrator', () => {
             variables: {
                 articleContent: {
                     ops: [
+                        { insert: 'Subtítulo <editorial>' },
+                        { insert: '\n', attributes: { header: 2 } },
                         { insert: 'Texto ' },
                         { insert: 'importante', attributes: { bold: true } },
                         { insert: ' con enlace', attributes: { link: 'https://zoositioweb.com.mx/blog' } },
                         { insert: '.\n' },
+                        { insert: 'Otro nivel\n', attributes: { header: 3 } },
+                        { insert: 'Nivel no válido\n', attributes: { header: 7 } },
                     ],
                 },
             },
@@ -122,6 +126,9 @@ describe('ValueOrchestrator', () => {
         const resolvedHtml = resolveDynamicValue(resolvedHtmlThunk);
 
         expect(typeof resolvedHtmlThunk).toBe('function');
+        expect(resolvedHtml).toContain('<h2>Subtítulo &lt;editorial&gt;</h2>');
+        expect(resolvedHtml).toContain('<h3>Otro nivel</h3>');
+        expect(resolvedHtml).toContain('<p>Nivel no válido</p>');
         expect(resolvedHtml).toContain('<p>Texto <strong>importante</strong>');
         expect(resolvedHtml).toContain('<a href="https://zoositioweb.com.mx/blog"> con enlace</a>');
         expect(resolvedHtml).not.toContain('[object Object]');
