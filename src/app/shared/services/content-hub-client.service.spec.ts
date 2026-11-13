@@ -198,6 +198,28 @@ describe('ContentHubClientService', () => {
         expect(JSON.stringify(body)).not.toContain('credentialRef');
     });
 
+    for (const action of ['createArticle', 'updatePackage']) {
+        it(`serializes the cover file on ${action}`, async () => {
+            const service = TestBed.inject(ContentHubClientService);
+            await service.executeAction({
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-articulos-nuevo',
+                actionId: action,
+                input: {
+                    contentHub: { action, hubId: 'zoosite-main' },
+                    coverUpload: [new File(['asset'], 'cover.webp', { type: 'image/webp' })],
+                    imageAlt: 'Un ejemplo de portada',
+                },
+            });
+            const [, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+            const { input } = JSON.parse(String(init.body));
+            expect(input.coverUpload[0]).toEqual(jasmine.objectContaining({
+                name: 'cover.webp', mimeType: 'image/webp', dataBase64: 'YXNzZXQ=',
+            }));
+            expect(input.imageAlt).toBe('Un ejemplo de portada');
+        });
+    }
+
     it('maps technical content hub identity errors to safe user-facing copy', async () => {
         fetchSpy.and.resolveTo(new Response(JSON.stringify({
             ok: false,
