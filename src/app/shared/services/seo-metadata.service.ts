@@ -12,7 +12,7 @@ import { VariableStoreService } from './variable-store.service';
 import { ConfigStoreService } from './config-store.service';
 import { ProtectedOriginService } from './protected-origin.service';
 import {isFixedJournal, journalAlternatePaths} from '../utility/content-hub/fixed-journal-public';
-import { sharedZoositeArticleCanonical } from '../utility/content-hub/shared-blog-canonical';
+import { resolveSharedContentHubArticleSeo } from '../utility/content-hub/shared-blog-canonical';
 
 const AD_CANONICAL_QUERY_PARAMS = new Set([
     'gclid',
@@ -66,10 +66,11 @@ export class SeoMetadataService {
             const seoTitle = draftTitle || this.cleanString(siteSeo?.title) || fallbackSiteName;
             const seoDescription = draftDescription || fallbackDescription || '';
             const pathname = this.normalizePathname(doc.defaultView?.location?.pathname);
+            const sharedSeo = resolveSharedContentHubArticleSeo(this.configStore.siteConfig(), pathname, lang);
             const seoKeywords = this.resolveMetaList(seo?.keywords, lang) || this.resolveMetaList(siteSeo?.keywords, lang);
             const seoRobots = this.isContentHubTagFilterPath(pathname)
                 ? 'noindex,nofollow'
-                : this.resolveLocalizedText(seo?.robots, lang) || this.resolveLocalizedText(siteSeo?.robots, lang);
+                : sharedSeo?.robots || this.resolveLocalizedText(seo?.robots, lang) || this.resolveLocalizedText(siteSeo?.robots, lang);
 
             this.title.setTitle(seoTitle);
             this.meta.updateTag({ name: 'description', content: seoDescription });
@@ -84,9 +85,8 @@ export class SeoMetadataService {
             const rawCanonicalUrl = this.isContentHubTagFilterPath(pathname)
                 ? `${ origin }${ pathname }`
                 : this.resolveLocalizedText(seo?.canonical, lang) || url;
-            const suppressCanonical = seo?.canonicalMode === 'none';
-            const sharedCanonical = sharedZoositeArticleCanonical(this.configStore.siteConfig(), pathname);
-            const canonicalUrl = sharedCanonical && rawCanonicalUrl === sharedCanonical ? sharedCanonical : this.resolveEffectiveCanonicalUrl(
+            const suppressCanonical = !sharedSeo && seo?.canonicalMode === 'none';
+            const canonicalUrl = sharedSeo?.canonical ?? this.resolveEffectiveCanonicalUrl(
                 rawCanonicalUrl,
                 origin,
                 siteSeo,
@@ -102,7 +102,7 @@ export class SeoMetadataService {
                 ...twitterDefaults,
                 ...this.asRecord(seo?.twitter),
             }, lang);
-            const openGraphUrl = this.cleanString(openGraph['url']) || canonicalUrl;
+            const openGraphUrl = sharedSeo?.canonical || this.cleanString(openGraph['url']) || canonicalUrl;
             const defaultSocialImage = this.resolveAbsoluteAssetUrl(DEFAULT_SOCIAL_IMAGE_HREF, origin);
             const defaultImage = this.resolveAbsoluteAssetUrl(this.cleanString(siteSeo?.defaultImage), origin)
                 || this.resolveAbsoluteAssetUrl(this.cleanString(openGraphDefaults['image']), origin)
@@ -161,9 +161,10 @@ export class SeoMetadataService {
                 if (suppressCanonical) {
                     head.querySelectorAll("link[rel='canonical']").forEach((link) => link.remove());
                 } else {
-                    let linkEl = head.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
-                    if (!linkEl) {
-                        linkEl = doc.createElement('link');
+                    const [existing, ...duplicates] = Array.from(head.querySelectorAll<HTMLLinkElement>("link[rel='canonical']"));
+                    duplicates.forEach(link => link.remove());
+                    const linkEl = existing ?? doc.createElement('link');
+                    if (!existing) {
                         linkEl.setAttribute('rel', 'canonical');
                         head.appendChild(linkEl);
                     }

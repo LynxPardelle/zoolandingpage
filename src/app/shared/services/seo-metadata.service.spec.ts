@@ -7,6 +7,7 @@ import { ConfigStoreService } from './config-store.service';
 import { SeoMetadataService } from './seo-metadata.service';
 import { VariableStoreService } from './variable-store.service';
 import { ProtectedOriginService } from './protected-origin.service';
+import type { TDraftSiteConfigPayload } from '../types/config-payloads.types';
 
 describe('SeoMetadataService page fonts', () => {
     let assetProjection:(value:string)=>string;
@@ -231,6 +232,76 @@ describe('SeoMetadataService', () => {
         expect(title.setTitle).toHaveBeenCalledWith('Zoo Landing Page');
         expect(meta.updateTag).toHaveBeenCalledWith({ name: 'description', content: 'Draft-driven landing pages.' });
         expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:site_name', content: 'Zoo Landing Page' });
+    });
+
+    it('keeps one owner canonical for a shared article and restores owned route metadata on navigation', () => {
+        TestBed.resetTestingModule();
+        const domain = 'zooberiahsystems.com';
+        const owner = 'zoositioweb.com.mx';
+        const path = '/blog/web/shared-copy';
+        const ownerPath = '/blog/web/source-slug';
+        const canonical = `https://${ owner }${ ownerPath }`;
+        const location = { origin: 'https://test.zoolandingpage.com.mx', pathname: path, search: '' };
+        const doc = document.implementation.createHTMLDocument('shared article');
+        Object.defineProperty(doc, 'defaultView', { value: { location } });
+        doc.head.insertAdjacentHTML('beforeend', `
+            <link rel="canonical" href="${ canonical }">
+            <link rel="canonical" href="https://${ domain }${ path }">
+            <meta name="robots" content="noindex,follow">
+        `);
+        TestBed.configureTestingModule({ providers: [
+            { provide: DOCUMENT, useValue: doc },
+            { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain }) } },
+            { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
+            { provide: RuntimeConfigService, useValue: {
+                seoDefaults: () => ({
+                    canonicalOrigin: `https://${ domain }`, enforceCanonicalHost: true, robots: 'index,follow',
+                }),
+                appName: () => 'ZooBeriah Systems',
+                appDescription: () => '',
+            } },
+        ] });
+        TestBed.inject(ConfigStoreService).setSiteConfig({
+            version: 1,
+            domain,
+            routes: [],
+            site: {} as TDraftSiteConfigPayload['site'],
+            runtime: { contentHubs: [{
+                hubId: 'zoosite-main',
+                routeBasePath: '/blog',
+                listPath: '/blog',
+                articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                ownerDraftDomain: owner,
+                source: 'authorized',
+                canonicalMode: 'noindex-shared',
+                locales: ['es'],
+                defaultLocale: 'es',
+                publicArticles: [{
+                    articleId: 'shared',
+                    locale: 'es',
+                    status: 'published',
+                    title: 'Shared article',
+                    publishedAt: '2026-11-13T12:00:00Z',
+                    path,
+                    canonicalPath: ownerPath,
+                    robots: 'index,follow',
+                }],
+            }] },
+        });
+        service = TestBed.inject(SeoMetadataService);
+
+        service.apply('es', { canonical, robots: 'index,follow' });
+
+        const canonicals = () => Array.from(doc.head.querySelectorAll('link[rel="canonical"]'), link => link.getAttribute('href'));
+        const robots = () => doc.head.querySelector('meta[name="robots"]')?.getAttribute('content');
+        expect(canonicals()).toEqual([canonical]);
+        expect(robots()).toBe('noindex,follow');
+
+        location.pathname = '/blog/web/own-article';
+        service.apply('es', { canonical: `https://${ domain }${ location.pathname }`, robots: 'index,follow' });
+
+        expect(canonicals()).toEqual([`https://${ domain }${ location.pathname }`]);
+        expect(robots()).toBe('index,follow');
     });
 
     it('removes the canonical link only while the page explicitly suppresses it', () => {
