@@ -4,6 +4,13 @@
   "defaultBaseDir": "drafts",
   "drafts": [
     {
+      "domain": "dipsydoo.com.mx",
+      "repo": "draft-dipsydoo-com-mx",
+      "githubUrl": "https://github.com/LynxPardelle/draft-dipsydoo-com-mx.git",
+      "localPath": "drafts/dipsydoo.com.mx",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
       "domain": "alecfest-voliii.com",
       "repo": "draft-alecfest-voliii-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-alecfest-voliii-com.git",
