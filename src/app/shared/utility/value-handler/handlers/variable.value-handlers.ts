@@ -59,7 +59,7 @@ const richTextToHtml = (value: unknown): string => {
     const ops = deltaOps(value);
     if (!ops.length) return '';
 
-    const paragraphs: string[] = [];
+    const blocks: string[] = [];
     let current = '';
 
     for (const operation of ops) {
@@ -68,14 +68,18 @@ const richTextToHtml = (value: unknown): string => {
         pieces.forEach((piece, index) => {
             if (piece) current += inlineHtml(piece, operation.attributes);
             if (index < pieces.length - 1) {
-                if (current.trim()) paragraphs.push(`<p>${ current }</p>`);
+                const heading = operation.attributes?.['header'];
+                const tag = typeof heading === 'number' && Number.isInteger(heading) && heading >= 1 && heading <= 6
+                    ? `h${ heading }`
+                    : 'p';
+                if (current.trim()) blocks.push(`<${ tag }>${ current }</${ tag }>`);
                 current = '';
             }
         });
     }
 
-    if (current.trim()) paragraphs.push(`<p>${ current }</p>`);
-    return paragraphs.join('');
+    if (current.trim()) blocks.push(`<p>${ current }</p>`);
+    return blocks.join('');
 };
 
 export const variableValueHandler = (): ValueHandler => {
