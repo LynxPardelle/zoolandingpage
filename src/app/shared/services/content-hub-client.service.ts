@@ -90,9 +90,17 @@ export class ContentHubClientService {
     }
 
     private async serializeActionPayload(payload: TRuntimeApiProxyActionRequest): Promise<TContentHubSerializableRequest> {
-        if (this.contentHubAction(payload.input) !== 'uploadAsset') {
-            return payload;
+        const action = this.contentHubAction(payload.input);
+        if ((action === 'createArticle' || action === 'updatePackage') && payload.input?.['coverUpload'] !== undefined) {
+            return {
+                ...payload,
+                input: {
+                    ...payload.input,
+                    coverUpload: await this.serializeUploadValue(payload.input['coverUpload']),
+                },
+            };
         }
+        if (action !== 'uploadAsset') return payload;
 
         const input = await this.serializeUploadValue(payload.input);
         return {
