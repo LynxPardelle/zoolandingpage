@@ -4,6 +4,7 @@ import { matchContentHubArticleRoute, type TContentHubPublicRouteArticle, type T
 
 type Delivery = { readonly path?: unknown; readonly canonicalPath?: unknown; readonly robots?: unknown };
 type SharedBlogSource = {
+    readonly hubId?: string;
     readonly ownerDraftDomain?: string;
     readonly source?: string;
     readonly canonicalMode?: string;
@@ -11,15 +12,24 @@ type SharedBlogSource = {
     readonly articlePathPattern?: string;
     readonly publicArticles?: TContentHubPublicRouteCollection<TSharedArticle>;
 };
-type TSharedArticle = TContentHubPublicRouteArticle & Delivery & { readonly locale?: unknown };
+type TSharedArticle = TContentHubPublicRouteArticle & Delivery & { readonly locale?: unknown; readonly primarySite?: unknown };
 
 export type TSharedContentHubArticleSeo = {
     readonly canonical: string;
-    readonly robots: 'noindex,follow' | 'noindex,nofollow';
+    readonly robots: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
 };
 
 const DOMAIN_NAME = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
 const SAFE_PATH = /^\/(?!\/)[^\\\s\u0000-\u001f\u007f]*$/;
+const ZOOSITE = 'zoositioweb.com.mx';
+const ZOOBERIAH = 'zooberiahsystems.com';
+
+function isZoositeDelivery(hub: SharedBlogSource, domain: string): boolean {
+    return hub.hubId === 'zoosite-main' && hub.ownerDraftDomain === ZOOSITE && (
+        (domain === ZOOSITE && hub.source === 'primary')
+        || (domain === ZOOBERIAH && hub.source === 'authorized' && hub.canonicalMode === 'noindex-shared')
+    );
+}
 
 function safePath(value: unknown): string | undefined {
     return typeof value === 'string' && SAFE_PATH.test(value) ? value : undefined;
@@ -35,7 +45,8 @@ export function resolveSharedContentHubArticleSeo(
     const hubs = site?.runtime?.contentHubs;
     if (!domain || !hubs) return null;
     const sources = [hubs].flat();
-    if (!sources.some(hub => hub?.source === 'authorized' && hub.canonicalMode === 'noindex-shared')) return null;
+    if (!sources.some(hub => hub && (isZoositeDelivery(hub, domain)
+        || (hub.source === 'authorized' && hub.canonicalMode === 'noindex-shared')))) return null;
     const path = normalizeDraftRoutePath(requestPath);
     const lang = normalizeLocaleCode(language);
     const matchesPath = (entry: Delivery | null | undefined) => safePath(entry?.path) !== undefined
@@ -66,6 +77,16 @@ export function resolveSharedContentHubArticleSeo(
 
     // Apply the policy of the hub that actually supplied the article.
     const { hub, article, localized } = match;
+    const primary = article.primarySite;
+    if (isZoositeDelivery(hub, domain) && (primary === ZOOSITE || primary === ZOOBERIAH)
+        && /^\/blog\/[a-z0-9-]+\/[a-z0-9-]+$/.test(path) && matchContentHubArticleRoute([hub], path)) {
+        const robots = article.robots;
+        return {
+            canonical: `https://${ primary }${ path }`,
+            robots: robots === 'noindex,nofollow' || robots === 'noindex,follow' ? robots
+                : primary === domain ? 'index,follow' : 'noindex,follow',
+        };
+    }
     const owner = typeof hub.ownerDraftDomain === 'string' ? hub.ownerDraftDomain.toLowerCase() : '';
     if (hub.source !== 'authorized' || hub.canonicalMode !== 'noindex-shared'
         || !owner || owner === domain || owner.length > 253 || !DOMAIN_NAME.test(owner)
