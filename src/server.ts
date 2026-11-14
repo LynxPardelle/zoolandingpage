@@ -2226,7 +2226,8 @@ function buildContentHubSitemapEntries(
   const articleEntries = articles
     .filter((article) => !sharedPaths.has(normalizeRoutePath(article.path)) && !cleanString(article.robots).startsWith('noindex'))
     .map((article) => ({
-      url: articleCanonicalUrl(article, origin, host, siteConfig),
+      url: resolveSharedContentHubArticleSeo(siteConfig, article.path, lang, article.articleId)?.canonical
+        ?? articleCanonicalUrl(article, origin, host, siteConfig),
       lastmod: resolveLastModifiedValue(article.updatedAt) ?? resolveLastModifiedValue(article.publishedAt),
       priority: '0.8',
     }));
