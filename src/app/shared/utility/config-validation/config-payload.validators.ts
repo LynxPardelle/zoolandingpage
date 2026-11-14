@@ -1454,6 +1454,7 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
     if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
     if (!hasOnlyKnownKeys(value, new Set([
         'articleId',
+        'primarySite',
         'locale',
         'status',
         'title',
@@ -1476,6 +1477,9 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
         'interactions',
     ]))) return false;
     if (!isContentHubSafeId(value['articleId'])) return false;
+    if (value['primarySite'] !== undefined
+        && value['primarySite'] !== 'zoositioweb.com.mx'
+        && value['primarySite'] !== 'zooberiahsystems.com') return false;
     if (!isContentHubLocale(value['locale'])) return false;
     if (value['status'] !== 'published') return false;
     if (typeof value['title'] !== 'string' || value['title'].trim().length === 0) return false;

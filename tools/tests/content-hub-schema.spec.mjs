@@ -1056,6 +1056,31 @@ test('site-config schema exposes only public content hub runtime references', as
   assert.match(validateSchema(contentHubRuntime, invalid, schema).join('\n'), /hubId|ownerDraftDomain|defaultLocale|contentGroup|eventPrefix/);
 });
 
+test('public article schemas accept only the two editorial primary sites', async () => {
+  const publicSchema = await readSchema('publicConfig');
+  const siteSchema = await readSchema('siteConfig');
+  const article = {
+    articleId: 'art_shared',
+    locale: 'es',
+    status: 'published',
+    title: 'Shared article',
+    path: '/blog/web/shared-article',
+    publishedAt: '2026-11-13T12:00:00.000Z',
+  };
+  for (const [parent, schema] of [
+    [publicSchema, publicSchema.definitions.publicArticle],
+    [siteSchema, siteSchema.definitions.contentHubPublicArticle],
+  ]) {
+    assert.deepEqual(validateSchema(schema, article, parent), []);
+    for (const primarySite of ['zoositioweb.com.mx', 'zooberiahsystems.com']) {
+      assert.deepEqual(validateSchema(schema, { ...article, primarySite }, parent), []);
+    }
+    for (const primarySite of ['other.example', 'https://zoositioweb.com.mx', '', null]) {
+      assert.match(validateSchema(schema, { ...article, primarySite }, parent).join('\n'), /primarySite/);
+    }
+  }
+});
+
 test('server-only hub policy validates private storage and role boundaries', async () => {
   const schema = await readSchema('serverPolicy');
   const valid = buildServerPolicy();
