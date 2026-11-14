@@ -3734,7 +3734,8 @@ async function decorateHtmlResponse(
     ?? await loadPageConfigForRequest(req, lookupDomain, siteConfig);
   const contentHubDelivery = effectiveStatus === 404 ? undefined : findContentHubArticleForRequest(req, contentHubStatusSiteConfigs);
   const sharedSeo = contentHubDelivery
-    ? resolveSharedContentHubArticleSeo(contentHubDelivery.siteConfig, req.path, contentHubDelivery.lang, contentHubDelivery.article.articleId)
+    ? resolveSharedContentHubArticleSeo(contentHubDelivery.siteConfig, req.path, contentHubDelivery.lang,
+      contentHubDelivery.article.articleId, resolveLocalizedSeoString(requestPageConfig?.seo?.robots, contentHubDelivery.lang))
     : null;
   const pageConfig = withContentHubSeoPageConfig(req, lookupDomain, contentHubDelivery, requestPageConfig, sharedSeo);
   const headers = new Headers(response.headers);

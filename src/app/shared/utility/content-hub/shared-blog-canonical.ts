@@ -40,6 +40,7 @@ export function resolveSharedContentHubArticleSeo(
     requestPath: string,
     language?: string,
     articleId?: string,
+    pageRobots?: string,
 ): TSharedContentHubArticleSeo | null {
     const domain = typeof site?.domain === 'string' ? site.domain.toLowerCase() : '';
     const hubs = site?.runtime?.contentHubs;
@@ -81,7 +82,8 @@ export function resolveSharedContentHubArticleSeo(
     if (isZoositeDelivery(hub, domain) && (primary === ZOOSITE || primary === ZOOBERIAH)
         && /^\/blog\/[a-z0-9-]+\/[a-z0-9-]+$/.test(path) && matchContentHubArticleRoute([hub], path)) {
         const robots = localized?.robots ?? article.robots;
-        const directives = typeof robots === 'string' ? robots.toLowerCase().split(',').map(value => value.trim()) : [];
+        const directives = [robots, pageRobots].flatMap(value =>
+            typeof value === 'string' ? value.toLowerCase().split(',').map(part => part.trim()) : []);
         const noindex = primary !== domain || directives.includes('noindex') || directives.includes('none');
         const nofollow = directives.includes('nofollow') || directives.includes('none');
         return {
