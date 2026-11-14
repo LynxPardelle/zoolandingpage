@@ -522,6 +522,7 @@
       "required": ["articleId", "locale", "status", "title", "path", "publishedAt"],
       "properties": {
         "articleId": { "$ref": "#/definitions/contentHubSafeId" },
+        "primarySite": { "enum": ["zoositioweb.com.mx", "zooberiahsystems.com"] },
         "locale": { "$ref": "#/definitions/contentHubLocale" },
         "status": { "type": "string", "const": "published" },
         "title": { "type": "string", "minLength": 1 },

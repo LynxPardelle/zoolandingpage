@@ -99,6 +99,7 @@
       "additionalProperties": false,
       "properties": {
         "articleId": { "$ref": "#/definitions/safeId" },
+        "primarySite": { "enum": ["zoositioweb.com.mx", "zooberiahsystems.com"] },
         "locale": { "$ref": "#/definitions/locale" },
         "status": { "const": "published" },
         "title": { "type": "string", "minLength": 1 },
