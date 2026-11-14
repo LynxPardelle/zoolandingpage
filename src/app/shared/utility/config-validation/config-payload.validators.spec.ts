@@ -1639,6 +1639,51 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
     });
 
+    it('accepts a shared article primary site in a runtime bundle for the draft homepage', () => {
+        const article = {
+            articleId: 'art_shared',
+            locale: 'es',
+            status: 'published',
+            title: 'Shared article',
+            path: '/blog/web/shared-article',
+            publishedAt: '2026-11-13T12:00:00.000Z',
+        };
+        const identity = { version: 1, domain: 'zooberiahsystems.com', pageId: 'default' };
+        const bundle = (publicArticle: Record<string, unknown>) => ({
+            ...identity,
+            sourceStage: 'published',
+            route: { path: '/', pageId: 'default' },
+            pageConfig: { ...identity, rootIds: ['root'] },
+            components: { ...identity, components: [] },
+            siteConfig: {
+                version: 1,
+                domain: identity.domain,
+                routes: [{ path: '/', pageId: 'default' }],
+                site: minimalSiteConfig(),
+                runtime: { contentHubs: [{
+                    hubId: 'zoosite-main',
+                    ownerDraftDomain: 'zoositioweb.com.mx',
+                    source: 'authorized',
+                    routeBasePath: '/blog',
+                    listPath: '/blog',
+                    articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                    defaultLocale: 'es',
+                    locales: ['es'],
+                    canonicalMode: 'noindex-shared',
+                    publicArticles: { items: [publicArticle] },
+                }] },
+            },
+        });
+
+        expect(isRuntimeBundlePayload(bundle(article))).toBeTrue();
+        for (const primarySite of ['zoositioweb.com.mx', 'zooberiahsystems.com']) {
+            expect(isRuntimeBundlePayload(bundle({ ...article, primarySite }))).withContext(primarySite).toBeTrue();
+        }
+        for (const primarySite of ['other.example', 'https://zoositioweb.com.mx', '', null, 1]) {
+            expect(isRuntimeBundlePayload(bundle({ ...article, primarySite }))).withContext(String(primarySite)).toBeFalse();
+        }
+    });
+
     it('accepts content hub schedule list reads and cancel schedule actions', () => {
         const payload = {
             version: 1,
