@@ -741,6 +741,40 @@ describe('ConfigBootstrapService', () => {
         }));
     });
 
+    it('derives shared article SEO from the owner path and the reader policy', async () => {
+        const domain = 'zooberiahsystems.com';
+        const routePath = '/blog/web/shared-copy';
+        const canonical = 'https://zoositioweb.com.mx/blog/web/blog-builder-seo';
+        const ownerConfig = createContentHubSiteConfig();
+        const hub = ownerConfig.runtime!.contentHubs![0];
+        const [article] = hub.publicArticles as readonly TContentHubRuntimeArticleSummary[];
+        store.setSiteConfig({
+            ...ownerConfig,
+            domain,
+            site: { ...ownerConfig.site, seo: { canonicalOrigin: `https://${ domain }` } },
+            runtime: { contentHubs: [{
+                ...hub,
+                source: 'authorized',
+                canonicalMode: 'noindex-shared',
+                publicArticles: { items: [{ ...article, path: routePath }] },
+            }] },
+        });
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({ domain, pageId: 'blog-article', lang: 'es', routePath });
+
+        expect(store.seo()).toEqual(jasmine.objectContaining({
+            canonical,
+            robots: 'noindex,follow',
+            openGraph: jasmine.objectContaining({ url: canonical }),
+        }));
+        expect(store.structuredData()?.entries).toContain(jasmine.objectContaining({
+            '@type': 'BlogPosting',
+            url: canonical,
+            mainEntityOfPage: canonical,
+        }));
+    });
+
     it('uses the current content hub article for client-side seo and structured data', async () => {
         store.setSiteConfig(createContentHubSiteConfig());
         mockSuccessfulBootstrapPayloads();

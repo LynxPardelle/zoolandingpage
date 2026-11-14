@@ -1906,6 +1906,104 @@ test('production SSR server uses test runtime fallback for shared preview conten
   assert.equal(getStderr(), '');
 });
 
+test('shared preview uses owner SEO for copies and sends crawler-readable noindex', async (t) => {
+  const domain = 'zooberiahsystems.com';
+  const owner = 'zoositioweb.com.mx';
+  const path = '/blog/web/shared-copy';
+  const ownerPath = '/blog/web/source-slug';
+  const ownPath = '/blog/web/corporate-article';
+  const alternatePath = '/blog/web/shared-copy-en';
+  const primaryPath = '/blog/web/zoo-primary';
+  const oldPrimaryPath = '/blog/web/old-primary';
+  const pattern = '/blog/:categorySlug/:articleSlug';
+  const article = (articleId, path, canonicalPath = path) => ({
+    articleId, path, canonicalPath, locale: 'es', categorySlug: 'web', robots: 'index,follow',
+    status: 'published', visibility: 'public', title: articleId, publishedAt: '2026-11-13T12:00:00Z',
+  });
+  const hub = (hubId, ownerDraftDomain, source, canonicalMode, articles) => ({
+    hubId, ownerDraftDomain, source, canonicalMode, routeBasePath: '/blog', listPath: '/blog',
+    articlePathPattern: pattern, defaultLocale: 'es', locales: ['es'], publicArticles: { items: articles },
+  });
+  const routes = [{ path: '/', pageId: 'default' }, { path: '/blog', pageId: 'blog' }, { path: pattern, pageId: 'blog-article' }];
+  const config = {
+    version: 1, domain, defaultPageId: 'default', routes,
+    sitemap: { urls: [path, `https://${owner}${ownerPath}`, alternatePath] },
+    site: { seo: { canonicalOrigin: `https://${domain}`, enforceCanonicalHost: true, robots: 'index,follow' } },
+    runtime: { contentHubs: [
+      hub('zoosite-main', owner, 'authorized', 'noindex-shared', [
+        { ...article('shared', path, ownerPath), localizations: { en: {
+          path: alternatePath, canonicalPath: '/blog/web/source-slug-en', robots: 'index,nofollow',
+        } } },
+        { ...article('shared-en', ownPath, '/blog/web/english-article'), locale: 'en' },
+        { ...article('primary', primaryPath, oldPrimaryPath), primarySite: domain, robots: 'index,nofollow' },
+      ]),
+      hub('corporate-main', domain, 'primary', 'host-adaptive', [article('own', ownPath)]),
+    ] },
+  };
+  const api = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url, 'http://127.0.0.1');
+    const routePath = url.searchParams.get('path') || '/';
+    if (url.pathname !== '/runtime-bundle' || url.searchParams.get('domain') !== domain) {
+      res.writeHead(404).end('{}');
+      return;
+    }
+    const route = routes.find(entry => entry.path === routePath) ?? routes[2];
+    const identity = { version: 1, domain, pageId: route.pageId };
+    // The root projection can lag behind both the article and the public list.
+    const siteConfig = [path, primaryPath].includes(routePath) ? config : { ...config, runtime: { contentHubs: [
+      { ...config.runtime.contentHubs[0], publicArticles: routePath === '/blog' ? config.runtime.contentHubs[0].publicArticles : [] },
+      config.runtime.contentHubs[1],
+    ] } };
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({
+      ...identity, route, siteConfig, sourceStage: 'published', lang: 'es',
+      pageConfig: { ...identity, rootIds: [], seo: { canonical: `https://${domain}${routePath}`, robots: 'index,follow' } },
+      components: { ...identity, components: [] }, variables: { ...identity, variables: {} },
+      i18n: { ...identity, lang: 'es', dictionary: {} }, metadata: { statusCode: 200 },
+    }));
+  });
+  const { port } = await startProductionServer(t, { CONFIG_API_URL: api, ZLP_RUNTIME_ENV: '' });
+  const preview = 'test.zoolandingpage.com.mx';
+  const get = (route, host = preview) => fetch(`http://127.0.0.1:${port}${route}${host === preview ? `?draftDomain=${domain}` : ''}`, {
+    headers: { Host: host, 'X-Forwarded-Host': host, 'X-Forwarded-Proto': 'https' },
+  });
+  const copy = await get(path);
+  const copyHtml = await copy.text();
+  assert.equal(copy.status, 200);
+  assert.deepEqual([...copyHtml.matchAll(/<link rel="canonical" href="([^"]+)">/g)].map(match => match[1]), [`https://${owner}${ownerPath}`]);
+  assert.match(copyHtml, /<meta name="robots" content="noindex,follow">/);
+  assert.match(copy.headers.get('x-robots-tag') ?? '', /\bnoindex\b/);
+  assert.match(copyHtml, new RegExp(`"mainEntityOfPage":"https://${owner}${ownerPath}"`));
+  const alternate = await get(alternatePath);
+  const alternateHtml = await alternate.text();
+  assert.equal(alternate.status, 200);
+  assert.match(alternateHtml, /<meta name="robots" content="noindex,nofollow">/);
+  assert.ok(alternateHtml.includes(`<link rel="canonical" href="https://${owner}/blog/web/source-slug-en">`));
+
+  for (const route of ['/', '/blog', ownPath]) {
+    const own = await get(route);
+    const ownHtml = await own.text();
+    assert.equal(own.status, 200);
+    assert.match(own.headers.get('x-robots-tag') ?? '', /\bnoindex\b/);
+    assert.match(ownHtml, /<meta name="robots" content="index,follow">/);
+    assert.deepEqual([...ownHtml.matchAll(/<link rel="canonical" href="([^"]+)">/g)].map(match => match[1]), [`https://${domain}${route}`]);
+  }
+  const sitemap = await (await get('/sitemap.xml')).text();
+  assert.ok(sitemap.includes(`<loc>https://${domain}${ownPath}</loc>`));
+  assert.ok(sitemap.includes(`<loc>https://${domain}${primaryPath}</loc>`));
+  assert.ok(!sitemap.includes(oldPrimaryPath));
+  const primary = await get(primaryPath, domain);
+  const primaryHtml = await primary.text();
+  assert.match(primaryHtml, /<meta name="robots" content="index,nofollow">/);
+  assert.ok(primaryHtml.includes(`<link rel="canonical" href="https://${domain}${primaryPath}">`));
+  assert.ok(!sitemap.includes(path) && !sitemap.includes(ownerPath) && !sitemap.includes(alternatePath), 'shared copies are absent from all sitemap inputs');
+  const robots = await (await get('/robots.txt')).text();
+  assert.match(robots, /^Allow: \/$/m);
+  assert.doesNotMatch(robots, /^Disallow: \/blog\b/m);
+  const productionHome = await get('/', domain);
+  assert.equal(productionHome.headers.get('x-robots-tag'), null);
+  assert.match(await productionHome.text(), /<meta name="robots" content="index,follow">/);
+});
+
 test('production SSR server renders draft routes on aliased hosts', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/home`, {

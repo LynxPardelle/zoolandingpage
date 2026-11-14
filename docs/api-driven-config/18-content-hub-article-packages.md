@@ -320,7 +320,7 @@ For shared hubs:
 
 - The owner draft keeps canonical article identity.
 - Each authorized draft can render a host-adaptive canonical when intentionally sharing SEO value.
-- Drafts that should not compete for SEO can use `noindex-shared`.
+- Use `noindex-shared` on an authorized hub to keep copies out of search results. For a matched public article on a different draft, SSR and Angular use the owner's canonical URL and force `noindex`. The receiving sitemap omits the copy, including entries manually configured for its URL. The owner draft and the receiving draft's own articles keep their SEO settings.
 
 ## Scheduling And Revisions
 

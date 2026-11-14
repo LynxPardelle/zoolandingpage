@@ -1,5 +1,5 @@
 import {isFixedJournal, journalArticles, journalAlternatePaths, JOURNAL_SERIES} from './app/shared/utility/content-hub/fixed-journal-public';
-import { sharedZoositeArticleCanonical } from './app/shared/utility/content-hub/shared-blog-canonical';
+import { resolveSharedContentHubArticleSeo, type TSharedContentHubArticleSeo } from './app/shared/utility/content-hub/shared-blog-canonical';
 import {
     AngularNodeAppEngine,
     createNodeRequestHandler,
@@ -363,6 +363,7 @@ type TContentHubPublicCollection<T> = readonly T[] | {
 };
 
 type TContentHubPublicArticle = {
+  readonly primarySite?: string;
   readonly imageSrc?: string;
   readonly imageAlt?: string;
   readonly articleId?: string;
@@ -2214,7 +2215,8 @@ function buildContentHubSitemapEntries(
   origin: string,
   siteConfig: TLocalSiteConfig | null,
   host: string,
-  lang?: string,
+  lang: string,
+  sharedPaths: ReadonlySet<string>,
 ): readonly TSitemapEntry[] {
   const journal = readContentHubRuntimeConfigs(siteConfig).find(isFixedJournal);
   const articles = journal ? [
@@ -2222,9 +2224,10 @@ function buildContentHubSitemapEntries(
     ...journalArticles(journal, 'en'), ...journalArticles(journal, 'es'),
   ] : readPublicContentHubArticles(siteConfig, lang);
   const articleEntries = articles
-    .filter((article) => !cleanString(article.robots).startsWith('noindex'))
+    .filter((article) => !sharedPaths.has(normalizeRoutePath(article.path)) && !cleanString(article.robots).startsWith('noindex'))
     .map((article) => ({
-      url: articleCanonicalUrl(article, origin, host, siteConfig),
+      url: resolveSharedContentHubArticleSeo(siteConfig, normalizeRoutePath(article.path), lang, article.articleId)?.canonical
+        ?? articleCanonicalUrl(article, origin, host, siteConfig),
       lastmod: resolveLastModifiedValue(article.updatedAt) ?? resolveLastModifiedValue(article.publishedAt),
       priority: '0.8',
     }));
@@ -2291,6 +2294,23 @@ function buildSitemapEntryXml(entry: TSitemapEntry): string {
 async function buildSitemapXml(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): Promise<string> {
   const origin = `${resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '')}/`;
   const lang = resolveRequestLanguage(req, siteConfig);
+  const indexedArticles = readPublicContentHubArticles(siteConfig);
+  const indexedPaths = new Set<string>();
+  for (const article of indexedArticles) {
+    indexedPaths.add(normalizeRoutePath(article.path));
+    for (const localization of Object.values(article.localizations ?? {})) {
+      if (localization.path) indexedPaths.add(normalizeRoutePath(localization.path));
+    }
+  }
+  const sharedPaths = new Set<string>();
+  const ownerCanonicalPaths = new Set<string>();
+  for (const path of indexedPaths) {
+    const sharedSeo = resolveSharedContentHubArticleSeo(siteConfig, path, lang);
+    if (sharedSeo?.robots.startsWith('noindex')) {
+      sharedPaths.add(path);
+      ownerCanonicalPaths.add(normalizeRoutePath(new URL(sharedSeo.canonical).pathname));
+    }
+  }
   const excludedPaths = new Set(
     (Array.isArray(siteConfig?.sitemap?.excludePaths) ? siteConfig.sitemap.excludePaths : [])
       .map((entry) => normalizeRoutePath(entry)),
@@ -2303,6 +2323,7 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
     const routePath = normalizeRoutePath(route.path);
     const routePageId = String(route.pageId ?? '').trim();
     return !excludedPaths.has(routePath)
+      && !sharedPaths.has(routePath)
       && routePath !== '/404'
       && (!notFoundPageId || routePageId !== notFoundPageId);
   });
@@ -2320,12 +2341,19 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
     };
   }));
   const entriesByUrl = new Map<string, TSitemapEntry>();
+  const configuredEntries = resolveConfiguredSitemapUrls(origin, siteConfig, sitemapDomain, host)
+    .filter(({ url }) => {
+      const path = normalizeRoutePath(new URL(url).pathname);
+      // Host enforcement can turn an explicitly configured owner URL into a phantom local entry.
+      return !sharedPaths.has(path) && (!ownerCanonicalPaths.has(path) || indexedPaths.has(path)
+        || rawRoutes.some((route) => normalizeRoutePath(route.path) === path));
+    });
   [
     ...resolvedEntries,
-    ...resolveConfiguredSitemapUrls(origin, siteConfig, sitemapDomain, host),
-    ...buildContentHubSitemapEntries(origin, siteConfig, host, lang),
+    ...configuredEntries,
+    ...buildContentHubSitemapEntries(origin, siteConfig, host, lang, sharedPaths),
   ].forEach((entry) => {
-    if (!entriesByUrl.has(entry.url)) {
+    if (!sharedPaths.has(normalizeRoutePath(new URL(entry.url).pathname)) && !entriesByUrl.has(entry.url)) {
       entriesByUrl.set(entry.url, entry);
     }
   });
@@ -3175,11 +3203,12 @@ function buildCanonicalHeadHtml(
   pageConfig: TLocalPageConfig | null,
   contentHubSiteConfig: TLocalSiteConfig | null = siteConfig,
   allowCanonicalSuppression = true,
+  sharedSeo: TSharedContentHubArticleSeo | null = null,
 ): string {
-  if (allowCanonicalSuppression && pageConfig?.seo?.canonicalMode === 'none') {
+  if (!sharedSeo && allowCanonicalSuppression && pageConfig?.seo?.canonicalMode === 'none') {
     return '';
   }
-  const canonicalUrl = resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig, contentHubSiteConfig);
+  const canonicalUrl = sharedSeo?.canonical ?? resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig, contentHubSiteConfig);
   return `<link rel="canonical" href="${escapeHtmlAttribute(canonicalUrl)}">`;
 }
 
@@ -3196,10 +3225,6 @@ function resolveCanonicalHeadUrl(
   const isCategoryFilterPath = isContentHubCategoryFilterPath(contentHubSiteConfig, req.path, lang);
   const usesRequestCanonical = isTagFilterPath || isCategoryFilterPath;
   const configuredCanonical = usesRequestCanonical ? '' : resolveLocalizedSeoString(pageConfig?.seo?.canonical, lang);
-  const sharedCanonical = sharedZoositeArticleCanonical(contentHubSiteConfig, normalizeRoutePath(req.path));
-  if (sharedCanonical && configuredCanonical === sharedCanonical) {
-    return sharedCanonical;
-  }
   const rawCanonical = usesRequestCanonical
     ? new URL(normalizeRoutePath(req.path), `${origin}/`).toString()
     : configuredCanonical && !configuredCanonical.includes('{{')
@@ -3407,16 +3432,22 @@ function buildRssFeedXml(req: express.Request, host: string, siteConfig: TLocalS
 function findContentHubArticleForRequest(
   req: express.Request,
   siteConfigs: readonly (TLocalSiteConfig | null | undefined)[],
-): TContentHubPublicArticle | undefined {
+): { article: TContentHubPublicArticle; siteConfig: TLocalSiteConfig; lang: string } | undefined {
   const path = normalizeRoutePath(req.path);
   for (const siteConfig of siteConfigs) {
-    const lang = resolveRequestLanguage(req, siteConfig ?? null);
-    const article = readPublicContentHubArticles(siteConfig ?? null, lang)
+    if (!siteConfig) continue;
+    const lang = resolveRequestLanguage(req, siteConfig);
+    const article = readPublicContentHubArticles(siteConfig, lang)
       .find((entry) => normalizeRoutePath(entry.path) === path)
-      ?? (readContentHubRuntimeConfigs(siteConfig ?? null).some(isFixedJournal) && path.startsWith('/the-journal/')
-        ? undefined : readPublicContentHubArticles(siteConfig ?? null).find((entry) => normalizeRoutePath(entry.path) === path));
+      ?? (readContentHubRuntimeConfigs(siteConfig).some(isFixedJournal) && path.startsWith('/the-journal/')
+        ? undefined : readPublicContentHubArticles(siteConfig).map((entry) => {
+          if (normalizeRoutePath(entry.path) === path) return entry;
+          const alternateLang = Object.keys(entry.localizations ?? {})
+            .find((locale) => normalizeRoutePath(entry.localizations?.[locale]?.path) === path);
+          return alternateLang ? localizeContentHubArticle(entry, alternateLang) : null;
+        }).find((entry): entry is TContentHubPublicArticle => entry !== null));
     if (article) {
-      return article;
+      return { article, siteConfig, lang };
     }
   }
 
@@ -3442,10 +3473,10 @@ function buildContentHubArticleStructuredData(
   host: string,
   siteConfig: TLocalSiteConfig | null,
   article: TContentHubPublicArticle,
+  canonicalUrl: string,
 ): Record<string, unknown> {
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
   const seo = resolveEffectiveSeoConfig(host, siteConfig);
-  const canonicalUrl = articleCanonicalUrl(article, origin, host, siteConfig);
   const image = fixedJournalArticle(siteConfig, article) && article.imageSrc
     ? new URL(article.imageSrc, origin).href : resolveContentHubArticleStructuredDataImage(seo, origin);
   const publisherName = cleanString(seo?.siteName) || cleanString(siteConfig?.domain);
@@ -3471,10 +3502,6 @@ function fixedJournalArticle(siteConfig: TLocalSiteConfig | null, article: TCont
 }
 
 function articleCanonicalUrl(article: TContentHubPublicArticle, origin: string, host: string, siteConfig: TLocalSiteConfig | null): string {
-  const sharedCanonical = sharedZoositeArticleCanonical(siteConfig, normalizeRoutePath(article.canonicalPath || article.path));
-  if (sharedCanonical) {
-    return sharedCanonical;
-  }
   const url = resolveEffectiveCanonicalUrl(new URL(normalizeRoutePath(article.canonicalPath || article.path), origin).href, origin, host, siteConfig);
   return fixedJournalArticle(siteConfig, article) ? addLangParam(url, cleanString(article.locale)) : url;
 }
@@ -3482,17 +3509,17 @@ function articleCanonicalUrl(article: TContentHubPublicArticle, origin: string, 
 function withContentHubSeoPageConfig(
   req: express.Request,
   host: string,
-  siteConfigs: readonly (TLocalSiteConfig | null | undefined)[],
+  delivery: ReturnType<typeof findContentHubArticleForRequest>,
   pageConfig: TLocalPageConfig | null,
+  sharedSeo: TSharedContentHubArticleSeo | null,
 ): TLocalPageConfig | null {
-  const article = findContentHubArticleForRequest(req, siteConfigs);
-  if (!article) {
+  if (!delivery) {
     return pageConfig;
   }
 
-  const siteConfig = siteConfigs.find(Boolean) ?? null;
+  const { article, siteConfig } = delivery;
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
-  const canonical = articleCanonicalUrl(article, origin, host, siteConfig);
+  const canonical = sharedSeo?.canonical ?? articleCanonicalUrl(article, origin, host, siteConfig);
   const image = article.imageSrc ? new URL(article.imageSrc, origin).href : '';
   const journalSocial = fixedJournalArticle(siteConfig, article) ? {
     openGraph: {type:'article',title:cleanString(article.title),description:cleanString(article.summary),url:canonical,image,'image:alt':cleanString(article.imageAlt)},
@@ -3505,13 +3532,13 @@ function withContentHubSeoPageConfig(
       title: cleanString(article.title) || pageConfig?.seo?.title,
       description: cleanString(article.summary) || pageConfig?.seo?.description,
       canonical,
-      robots: cleanString(article.robots) || pageConfig?.seo?.robots,
+      robots: sharedSeo?.robots ?? (cleanString(article.robots) || pageConfig?.seo?.robots),
       ...journalSocial,
     },
     structuredData: {
       entries: [
         ...readStructuredDataEntries(pageConfig).filter((entry) => !hasStructuredDataType(entry, 'BlogPosting')),
-        buildContentHubArticleStructuredData(req, host, siteConfig, article),
+        buildContentHubArticleStructuredData(req, host, siteConfig, article, canonical),
       ],
     },
   };
@@ -3582,6 +3609,7 @@ function buildSeoTextHeadHtml(
   host: string,
   siteConfig: TLocalSiteConfig | null,
   pageConfig: TLocalPageConfig | null,
+  sharedSeo: TSharedContentHubArticleSeo | null,
 ): string {
   const lang = resolveRequestLanguage(req, siteConfig);
   const pageSeo = pageConfig?.seo;
@@ -3601,7 +3629,7 @@ function buildSeoTextHeadHtml(
     || resolveLocalizedSeoString(siteSeo?.description, lang);
   const seoKeywords = resolveSeoMetaList(pageSeoRecord['keywords'], lang)
     || resolveSeoMetaList(siteSeoRecord['keywords'], lang);
-  const canonicalUrl = resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig);
+  const canonicalUrl = sharedSeo?.canonical ?? resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig);
   const openGraphDefaults = resolveLocalizedSeoRecord(siteSeo?.openGraph, lang);
   const twitterDefaults = resolveLocalizedSeoRecord(siteSeo?.twitter, lang);
   const openGraph = {
@@ -3615,7 +3643,7 @@ function buildSeoTextHeadHtml(
   const ogTitle = cleanString(openGraph['title']) || seoTitle;
   const ogDescription = cleanString(openGraph['description']) || seoDescription;
   const ogType = cleanString(openGraph['type']) || 'website';
-  const ogUrl = cleanString(openGraph['url']) || canonicalUrl;
+  const ogUrl = sharedSeo?.canonical ?? (cleanString(openGraph['url']) || canonicalUrl);
   const ogImage = cleanString(openGraph['image'])
     || cleanString(siteSeo?.defaultImage)
     || cleanString(openGraphDefaults['image']);
@@ -3704,13 +3732,12 @@ async function decorateHtmlResponse(
     : null;
   const requestPageConfig = routePageConfig
     ?? await loadPageConfigForRequest(req, lookupDomain, siteConfig);
-  const pageConfig = effectiveStatus === 404
-    ? requestPageConfig
-    : withContentHubSeoPageConfig(req, lookupDomain, [
-      routeContentHubSiteConfig,
-      publicContentHubSiteConfig,
-      siteConfig,
-    ], requestPageConfig);
+  const contentHubDelivery = effectiveStatus === 404 ? undefined : findContentHubArticleForRequest(req, contentHubStatusSiteConfigs);
+  const sharedSeo = contentHubDelivery
+    ? resolveSharedContentHubArticleSeo(contentHubDelivery.siteConfig, req.path, contentHubDelivery.lang,
+      contentHubDelivery.article.articleId, resolveLocalizedSeoString(requestPageConfig?.seo?.robots, contentHubDelivery.lang))
+    : null;
+  const pageConfig = withContentHubSeoPageConfig(req, lookupDomain, contentHubDelivery, requestPageConfig, sharedSeo);
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   applyProtectedHtmlCacheHeaders(headers, siteConfig, req.path);
@@ -3729,7 +3756,7 @@ async function decorateHtmlResponse(
   const headHtml = [
     effectiveStatus === 404
       ? buildNotFoundSeoTextHeadHtml(siteConfig, responseLang)
-      : buildSeoTextHeadHtml(req, lookupDomain, siteConfig, pageConfig),
+      : buildSeoTextHeadHtml(req, lookupDomain, siteConfig, pageConfig, sharedSeo),
     buildGoogleTagHeadHtml(host, siteConfig),
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
     buildBrowserIconsHeadHtml(siteConfig),
@@ -3742,6 +3769,7 @@ async function decorateHtmlResponse(
       pageConfig,
       publicContentHubSiteConfig,
       effectiveStatus !== 404,
+      sharedSeo,
     ),
     hreflangHeadHtml,
   ].filter(Boolean).join('\n');
@@ -4162,6 +4190,9 @@ app.use((req, res, next) => {
   const originalHostHeader = req.headers.host;
   const originalEffectiveHostHeader = req.headers['x-zlp-effective-host'];
   const angularSsrEffectiveHost = resolveRequestHost(req);
+  if (isSharedTestingPreviewHost(angularSsrEffectiveHost)) {
+    res.set('X-Robots-Tag', 'noindex');
+  }
   const angularSsrHostOverride = resolveAngularSsrHostOverride(req);
   req.headers['x-zlp-effective-host'] = angularSsrEffectiveHost;
   if (angularSsrHostOverride) {
