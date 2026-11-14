@@ -1913,6 +1913,8 @@ test('shared preview uses owner SEO for copies and sends crawler-readable noinde
   const ownerPath = '/blog/web/source-slug';
   const ownPath = '/blog/web/corporate-article';
   const alternatePath = '/blog/web/shared-copy-en';
+  const primaryPath = '/blog/web/zoo-primary';
+  const oldPrimaryPath = '/blog/web/old-primary';
   const pattern = '/blog/:categorySlug/:articleSlug';
   const article = (articleId, path, canonicalPath = path) => ({
     articleId, path, canonicalPath, locale: 'es', categorySlug: 'web', robots: 'index,follow',
@@ -1933,6 +1935,7 @@ test('shared preview uses owner SEO for copies and sends crawler-readable noinde
           path: alternatePath, canonicalPath: '/blog/web/source-slug-en', robots: 'index,nofollow',
         } } },
         { ...article('shared-en', ownPath, '/blog/web/english-article'), locale: 'en' },
+        { ...article('primary', primaryPath, oldPrimaryPath), primarySite: domain, robots: 'index,nofollow' },
       ]),
       hub('corporate-main', domain, 'primary', 'host-adaptive', [article('own', ownPath)]),
     ] },
@@ -1947,7 +1950,7 @@ test('shared preview uses owner SEO for copies and sends crawler-readable noinde
     const route = routes.find(entry => entry.path === routePath) ?? routes[2];
     const identity = { version: 1, domain, pageId: route.pageId };
     // The root projection can lag behind both the article and the public list.
-    const siteConfig = routePath === path ? config : { ...config, runtime: { contentHubs: [
+    const siteConfig = [path, primaryPath].includes(routePath) ? config : { ...config, runtime: { contentHubs: [
       { ...config.runtime.contentHubs[0], publicArticles: routePath === '/blog' ? config.runtime.contentHubs[0].publicArticles : [] },
       config.runtime.contentHubs[1],
     ] } };
@@ -1986,6 +1989,12 @@ test('shared preview uses owner SEO for copies and sends crawler-readable noinde
   }
   const sitemap = await (await get('/sitemap.xml')).text();
   assert.ok(sitemap.includes(`<loc>https://${domain}${ownPath}</loc>`));
+  assert.ok(sitemap.includes(`<loc>https://${domain}${primaryPath}</loc>`));
+  assert.ok(!sitemap.includes(oldPrimaryPath));
+  const primary = await get(primaryPath, domain);
+  const primaryHtml = await primary.text();
+  assert.match(primaryHtml, /<meta name="robots" content="index,nofollow">/);
+  assert.ok(primaryHtml.includes(`<link rel="canonical" href="https://${domain}${primaryPath}">`));
   assert.ok(!sitemap.includes(path) && !sitemap.includes(ownerPath) && !sitemap.includes(alternatePath), 'shared copies are absent from all sitemap inputs');
   const robots = await (await get('/robots.txt')).text();
   assert.match(robots, /^Allow: \/$/m);
