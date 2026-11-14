@@ -2226,7 +2226,8 @@ function buildContentHubSitemapEntries(
   const articleEntries = articles
     .filter((article) => !sharedPaths.has(normalizeRoutePath(article.path)) && !cleanString(article.robots).startsWith('noindex'))
     .map((article) => ({
-      url: articleCanonicalUrl(article, origin, host, siteConfig),
+      url: resolveSharedContentHubArticleSeo(siteConfig, normalizeRoutePath(article.path), lang, article.articleId)?.canonical
+        ?? articleCanonicalUrl(article, origin, host, siteConfig),
       lastmod: resolveLastModifiedValue(article.updatedAt) ?? resolveLastModifiedValue(article.publishedAt),
       priority: '0.8',
     }));
@@ -3733,7 +3734,8 @@ async function decorateHtmlResponse(
     ?? await loadPageConfigForRequest(req, lookupDomain, siteConfig);
   const contentHubDelivery = effectiveStatus === 404 ? undefined : findContentHubArticleForRequest(req, contentHubStatusSiteConfigs);
   const sharedSeo = contentHubDelivery
-    ? resolveSharedContentHubArticleSeo(contentHubDelivery.siteConfig, req.path, contentHubDelivery.lang, contentHubDelivery.article.articleId)
+    ? resolveSharedContentHubArticleSeo(contentHubDelivery.siteConfig, req.path, contentHubDelivery.lang,
+      contentHubDelivery.article.articleId, resolveLocalizedSeoString(requestPageConfig?.seo?.robots, contentHubDelivery.lang))
     : null;
   const pageConfig = withContentHubSeoPageConfig(req, lookupDomain, contentHubDelivery, requestPageConfig, sharedSeo);
   const headers = new Headers(response.headers);

@@ -66,7 +66,9 @@ export class SeoMetadataService {
             const seoTitle = draftTitle || this.cleanString(siteSeo?.title) || fallbackSiteName;
             const seoDescription = draftDescription || fallbackDescription || '';
             const pathname = this.normalizePathname(doc.defaultView?.location?.pathname);
-            const sharedSeo = resolveSharedContentHubArticleSeo(this.configStore.siteConfig(), pathname, lang);
+            const sharedSeo = resolveSharedContentHubArticleSeo(
+                this.configStore.siteConfig(), pathname, lang, undefined, this.resolveLocalizedText(seo?.robots, lang),
+            );
             const seoKeywords = this.resolveMetaList(seo?.keywords, lang) || this.resolveMetaList(siteSeo?.keywords, lang);
             const seoRobots = this.isContentHubTagFilterPath(pathname)
                 ? 'noindex,nofollow'

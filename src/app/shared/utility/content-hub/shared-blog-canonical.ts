@@ -16,7 +16,7 @@ type TSharedArticle = TContentHubPublicRouteArticle & Delivery & { readonly loca
 
 export type TSharedContentHubArticleSeo = {
     readonly canonical: string;
-    readonly robots: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+    readonly robots: 'index,follow' | 'index,nofollow' | 'noindex,follow' | 'noindex,nofollow';
 };
 
 const DOMAIN_NAME = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
@@ -40,6 +40,7 @@ export function resolveSharedContentHubArticleSeo(
     requestPath: string,
     language?: string,
     articleId?: string,
+    pageRobots?: string,
 ): TSharedContentHubArticleSeo | null {
     const domain = typeof site?.domain === 'string' ? site.domain.toLowerCase() : '';
     const hubs = site?.runtime?.contentHubs;
@@ -80,11 +81,14 @@ export function resolveSharedContentHubArticleSeo(
     const primary = article.primarySite;
     if (isZoositeDelivery(hub, domain) && (primary === ZOOSITE || primary === ZOOBERIAH)
         && /^\/blog\/[a-z0-9-]+\/[a-z0-9-]+$/.test(path) && matchContentHubArticleRoute([hub], path)) {
-        const robots = article.robots;
+        const robots = localized?.robots ?? article.robots;
+        const directives = [robots, pageRobots].flatMap(value =>
+            typeof value === 'string' ? value.toLowerCase().split(',').map(part => part.trim()) : []);
+        const noindex = primary !== domain || directives.includes('noindex') || directives.includes('none');
+        const nofollow = directives.includes('nofollow') || directives.includes('none');
         return {
             canonical: `https://${ primary }${ path }`,
-            robots: robots === 'noindex,nofollow' || robots === 'noindex,follow' ? robots
-                : primary === domain ? 'index,follow' : 'noindex,follow',
+            robots: `${ noindex ? 'noindex' : 'index' },${ nofollow ? 'nofollow' : 'follow' }`,
         };
     }
     const owner = typeof hub.ownerDraftDomain === 'string' ? hub.ownerDraftDomain.toLowerCase() : '';

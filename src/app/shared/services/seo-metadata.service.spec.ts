@@ -308,9 +308,11 @@ describe('SeoMetadataService', () => {
             }] },
         });
         const primaryCanonical = `https://${ domain }${ path }`;
-        service.apply('es', { canonical, robots: 'noindex,follow' });
+        service.apply('es', { canonical, robots: 'index,follow' });
         expect(canonicals()).toEqual([primaryCanonical]);
         expect(robots()).toBe('index,follow');
+        service.apply('es', { canonical, robots: 'noindex,nofollow' });
+        expect(robots()).toBe('noindex,nofollow');
 
         location.pathname = '/blog/web/own-article';
         service.apply('es', { canonical: `https://${ domain }${ location.pathname }`, robots: 'index,follow' });
