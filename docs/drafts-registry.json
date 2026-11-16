@@ -39,6 +39,13 @@
       "deploymentEnvironments": ["test", "production"]
     },
     {
+      "domain": "curso-musica-electronica.music.lynxpardelle.com",
+      "repo": "draft-curso-musica-electronica-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-curso-musica-electronica-music-lynxpardelle-com.git",
+      "localPath": "drafts/curso-musica-electronica.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
       "domain": "pamelabetancourt.com",
       "repo": "draft-pamelabetancourt-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-pamelabetancourt-com.git",
