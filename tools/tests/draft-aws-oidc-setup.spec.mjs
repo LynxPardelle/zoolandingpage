@@ -24,17 +24,42 @@ test('domainSlug and roleNameFor create stable draft role names', () => {
     roleNameFor('pamelabetancourt.com', 'production'),
     'draft-pamelabetancourt-com-production-deploy',
   );
+  assert.equal(roleNameFor('pamelabetancourt.com', 'test'), 'draft-pamelabetancourt-com-test-deploy');
+  const limitDomain = 'industria-musical.music.lynxpardelle.com';
+  const limitName = 'draft-industria-musical-music-lynxpardelle-com-production-deploy';
+  assert.equal(limitName.length, 64);
+  assert.equal(roleNameFor(limitDomain, 'production'), limitName);
 });
 
-test('deployment role inventory rejects slug collisions and overlong names', () => {
+test('deployment role inventory rejects collisions between existing short names', () => {
   assert.throws(() => buildDeploymentRoleInventory([
     { domain: 'a-b.example.com', repo: 'draft-a-b-example-com' },
     { domain: 'a.b-example.com', repo: 'draft-a-b-example-com-2' },
   ]), /duplicate_deployment_role_name/);
+});
 
-  assert.throws(() => buildDeploymentRoleInventory([
-    { domain: `${'a'.repeat(63)}.${'b'.repeat(63)}.com`, repo: 'draft-long-domain' },
-  ]), /invalid_deployment_role_name/);
+test('deployment role inventory admits distinct long domains in both environments', () => {
+  const domains = [
+    'curso-musica-electronica.music.lynxpardelle.com',
+    'curso-musica-electronica-avanzada.music.lynxpardelle.com',
+    'curso-musica.electronica-avanzada.music.lynxpardelle.com',
+  ];
+  assert.equal(domainSlug(domains[1]), domainSlug(domains[2]));
+  const inventory = buildDeploymentRoleInventory(domains.map((domain, index) => ({
+    domain,
+    repo: `draft-long-domain-${index}`,
+  })));
+
+  assert.equal(inventory.length, 6);
+  assert.equal(new Set(inventory.map(({ roleName }) => roleName)).size, inventory.length);
+  assert.equal(inventory[0].roleName, 'draft-curso-musica-electronica-musi-e9d3b7a15f28b971-test-deploy');
+  assert.equal(inventory[1].roleName, 'draft-curso-musica-electronic-e9d3b7a15f28b971-production-deploy');
+  for (const { domain, environment, roleName } of inventory) {
+    assert.ok(roleName.length <= 64);
+    assert.match(roleName, /^draft-[a-z0-9-]+-(test|production)-deploy$/);
+    assert.ok(roleName.endsWith(`-${environment}-deploy`));
+    assert.equal(roleNameFor(domain.toUpperCase(), environment), roleName);
+  }
 });
 
 test('deployment role inventory never creates production for a test-only draft', () => {
