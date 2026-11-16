@@ -46,6 +46,328 @@
       "deploymentEnvironments": ["test", "production"]
     },
     {
+      "domain": "curso-diseno-sonoro.music.lynxpardelle.com",
+      "repo": "draft-curso-diseno-sonoro-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-curso-diseno-sonoro-music-lynxpardelle-com.git",
+      "localPath": "drafts/curso-diseno-sonoro.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "curso-music-business.music.lynxpardelle.com",
+      "repo": "draft-curso-music-business-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-curso-music-business-music-lynxpardelle-com.git",
+      "localPath": "drafts/curso-music-business.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "curso-produccion-audiovisual.music.lynxpardelle.com",
+      "repo": "draft-curso-produccion-audiovisual-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-curso-produccion-audiovisual-music-lynxpardelle-com.git",
+      "localPath": "drafts/curso-produccion-audiovisual.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-grabacion-de-voz-e-instrumentos.music.lynxpardelle.com",
+      "repo": "draft-masterclass-grabacion-de-voz-e-instrumentos-lp-offer",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-grabacion-de-voz-e-instrumentos-lp-offer.git",
+      "localPath": "drafts/masterclass-grabacion-de-voz-e-instrumentos.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-loops-en-vivo.music.lynxpardelle.com",
+      "repo": "draft-masterclass-loops-en-vivo-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-loops-en-vivo-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-loops-en-vivo.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-procesos-de-audio-1.music.lynxpardelle.com",
+      "repo": "draft-masterclass-procesos-de-audio-1-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-procesos-de-audio-1-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-procesos-de-audio-1.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-procesos-de-audio-2.music.lynxpardelle.com",
+      "repo": "draft-masterclass-procesos-de-audio-2-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-procesos-de-audio-2-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-procesos-de-audio-2.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-instrumentos-y-efectos-midi.music.lynxpardelle.com",
+      "repo": "draft-masterclass-instrumentos-y-efectos-midi-lp-offer",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-instrumentos-y-efectos-midi-lp-offer.git",
+      "localPath": "drafts/masterclass-instrumentos-y-efectos-midi.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-impulse.music.lynxpardelle.com",
+      "repo": "draft-masterclass-impulse-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-impulse-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-impulse.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-drum-rack.music.lynxpardelle.com",
+      "repo": "draft-masterclass-drum-rack-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-drum-rack-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-drum-rack.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-simpler.music.lynxpardelle.com",
+      "repo": "draft-masterclass-simpler-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-simpler-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-simpler.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-sampler.music.lynxpardelle.com",
+      "repo": "draft-masterclass-sampler-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-sampler-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-sampler.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-ritmo.music.lynxpardelle.com",
+      "repo": "draft-masterclass-ritmo-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-ritmo-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-ritmo.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-notas-musicales.music.lynxpardelle.com",
+      "repo": "draft-masterclass-notas-musicales-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-notas-musicales-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-notas-musicales.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-intervalos.music.lynxpardelle.com",
+      "repo": "draft-masterclass-intervalos-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-intervalos-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-intervalos.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-acordes.music.lynxpardelle.com",
+      "repo": "draft-masterclass-acordes-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-acordes-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-acordes.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-escalas-mayores.music.lynxpardelle.com",
+      "repo": "draft-masterclass-escalas-mayores-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-escalas-mayores-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-escalas-mayores.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-escalas-menores.music.lynxpardelle.com",
+      "repo": "draft-masterclass-escalas-menores-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-escalas-menores-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-escalas-menores.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-estructura-musical.music.lynxpardelle.com",
+      "repo": "draft-masterclass-estructura-musical-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-estructura-musical-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-estructura-musical.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-mezcla-digital.music.lynxpardelle.com",
+      "repo": "draft-masterclass-mezcla-digital-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-mezcla-digital-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-mezcla-digital.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-masterizacion-profesional.music.lynxpardelle.com",
+      "repo": "draft-masterclass-masterizacion-profesional-lp-offer",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-masterizacion-profesional-lp-offer.git",
+      "localPath": "drafts/masterclass-masterizacion-profesional.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-ruteo-y-grupos.music.lynxpardelle.com",
+      "repo": "draft-masterclass-ruteo-y-grupos-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-ruteo-y-grupos-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-ruteo-y-grupos.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-sintesis-aditiva-sustractiva-y-fm.music.lynxpardelle.com",
+      "repo": "draft-masterclass-sintesis-aditiva-sustractiva-y-fm-lp-offer",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-sintesis-aditiva-sustractiva-y-fm-lp-offer.git",
+      "localPath": "drafts/masterclass-sintesis-aditiva-sustractiva-y-fm.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-sintesis-de-tabla-de-ondas.music.lynxpardelle.com",
+      "repo": "draft-masterclass-sintesis-de-tabla-de-ondas-lp-offer",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-sintesis-de-tabla-de-ondas-lp-offer.git",
+      "localPath": "drafts/masterclass-sintesis-de-tabla-de-ondas.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-sintesis-por-modelado-fisico.music.lynxpardelle.com",
+      "repo": "draft-masterclass-sintesis-por-modelado-fisico-lp-offer",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-sintesis-por-modelado-fisico-lp-offer.git",
+      "localPath": "drafts/masterclass-sintesis-por-modelado-fisico.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-sintesis-organica-y-granular.music.lynxpardelle.com",
+      "repo": "draft-masterclass-sintesis-organica-y-granular-lp-offer",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-sintesis-organica-y-granular-lp-offer.git",
+      "localPath": "drafts/masterclass-sintesis-organica-y-granular.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-edicion-del-sonido.music.lynxpardelle.com",
+      "repo": "draft-masterclass-edicion-del-sonido-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-edicion-del-sonido-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-edicion-del-sonido.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-profesionaliza-tu-proyecto-musical.music.lynxpardelle.com",
+      "repo": "draft-masterclass-profesionaliza-tu-proyecto-musical-lp-offer",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-profesionaliza-tu-proyecto-musical-lp-offer.git",
+      "localPath": "drafts/masterclass-profesionaliza-tu-proyecto-musical.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-industria-musical.music.lynxpardelle.com",
+      "repo": "draft-masterclass-industria-musical-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-industria-musical-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-industria-musical.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-artista-independiente.music.lynxpardelle.com",
+      "repo": "draft-masterclass-artista-independiente-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-artista-independiente-music-lynxpardelle-com.git",
+      "localPath": "drafts/masterclass-artista-independiente.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "masterclass-redes-sociales-para-musicos.music.lynxpardelle.com",
+      "repo": "draft-masterclass-redes-sociales-para-musicos-lp-offer",
+      "githubUrl": "https://github.com/LynxPardelle/draft-masterclass-redes-sociales-para-musicos-lp-offer.git",
+      "localPath": "drafts/masterclass-redes-sociales-para-musicos.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-asesorias.music.lynxpardelle.com",
+      "repo": "draft-servicio-asesorias-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-asesorias-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-asesorias.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-clases-personalizadas.music.lynxpardelle.com",
+      "repo": "draft-servicio-clases-personalizadas-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-clases-personalizadas-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-clases-personalizadas.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-mezcla.music.lynxpardelle.com",
+      "repo": "draft-servicio-mezcla-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-mezcla-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-mezcla.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-masterizacion.music.lynxpardelle.com",
+      "repo": "draft-servicio-masterizacion-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-masterizacion-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-masterizacion.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-soundtracks.music.lynxpardelle.com",
+      "repo": "draft-servicio-soundtracks-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-soundtracks-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-soundtracks.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-jingles.music.lynxpardelle.com",
+      "repo": "draft-servicio-jingles-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-jingles-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-jingles.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-animaciones.music.lynxpardelle.com",
+      "repo": "draft-servicio-animaciones-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-animaciones-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-animaciones.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-videoclips.music.lynxpardelle.com",
+      "repo": "draft-servicio-videoclips-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-videoclips-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-videoclips.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-logos.music.lynxpardelle.com",
+      "repo": "draft-servicio-logos-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-logos-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-logos.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-portadas-musicales.music.lynxpardelle.com",
+      "repo": "draft-servicio-portadas-musicales-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-portadas-musicales-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-portadas-musicales.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-sitios-web.music.lynxpardelle.com",
+      "repo": "draft-servicio-sitios-web-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-sitios-web-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-sitios-web.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-landing-pages.music.lynxpardelle.com",
+      "repo": "draft-servicio-landing-pages-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-landing-pages-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-landing-pages.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-flyers-digitales.music.lynxpardelle.com",
+      "repo": "draft-servicio-flyers-digitales-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-flyers-digitales-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-flyers-digitales.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-presskits-online.music.lynxpardelle.com",
+      "repo": "draft-servicio-presskits-online-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-presskits-online-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-presskits-online.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "servicio-portafolios-online.music.lynxpardelle.com",
+      "repo": "draft-servicio-portafolios-online-music-lynxpardelle-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-servicio-portafolios-online-music-lynxpardelle-com.git",
+      "localPath": "drafts/servicio-portafolios-online.music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
       "domain": "pamelabetancourt.com",
       "repo": "draft-pamelabetancourt-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-pamelabetancourt-com.git",
