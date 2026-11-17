@@ -251,6 +251,8 @@
 }
 } @case('stats-counter') {
 <generic-stats-counter [config]="resolveStatsCounterConfig(component.config)"></generic-stats-counter>
+} @case('weekly-calendar') {
+<weekly-calendar [config]="component.config" />
 } @case('tab-group') {
 <generic-tab-group
   [config]="component.config"

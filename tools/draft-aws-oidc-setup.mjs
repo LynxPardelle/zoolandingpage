@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -20,6 +21,7 @@ const GITHUB_OIDC_THUMBPRINTS = [
 const GITHUB_API_VERSION = '2026-03-10';
 const GITHUB_IMMUTABLE_SUBJECT_CUTOFF = Date.parse('2026-07-15T00:00:00Z');
 const DEPLOY_ACTIONS = ['createSite', 'upsertDraft', 'publishDraft', 'getSite'];
+const MAX_ROLE_NAME_LENGTH = 64;
 
 function parseArgs(rawArgs) {
   const args = {};
@@ -68,7 +70,14 @@ function domainSlug(domain) {
 }
 
 function roleNameFor(domain, environment) {
-  return `draft-${domainSlug(domain)}-${environment}-deploy`;
+  const stem = `draft-${domainSlug(domain)}`;
+  const suffix = `-${environment}-deploy`;
+  const name = `${stem}${suffix}`;
+  if (name.length <= MAX_ROLE_NAME_LENGTH) return name;
+
+  const digest = createHash('sha256').update(normalizeDomain(domain)).digest('hex').slice(0, 16);
+  const stemLength = MAX_ROLE_NAME_LENGTH - suffix.length - digest.length - 1;
+  return `${stem.slice(0, stemLength).replace(/-+$/, '')}-${digest}${suffix}`;
 }
 
 async function awsJson(args, options = {}) {
@@ -122,7 +131,7 @@ function buildDeploymentRoleInventory(drafts) {
   for (const draft of drafts) {
     for (const environment of draft.deploymentEnvironments ?? ['test', 'production']) {
       const roleName = roleNameFor(draft.domain, environment);
-      if (roleName.length > 64 || !/^[a-z0-9-]+$/.test(roleName)) {
+      if (roleName.length > MAX_ROLE_NAME_LENGTH || !/^[a-z0-9-]+$/.test(roleName)) {
         throw new Error(`invalid_deployment_role_name:${roleName}`);
       }
       if (seenRoleNames.has(roleName)) {
