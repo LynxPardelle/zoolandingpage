@@ -38,6 +38,7 @@ import { GenericTooltipComponent } from '../generic-tooltip/generic-tooltip.comp
 import { InteractionScopeComponent } from '../interaction-scope/interaction-scope.component';
 import { findInteractionScopeHost } from '../interaction-scope/interaction-scope.service';
 import type { TGenericCellColumnConfig } from '../generic-cell/generic-cell.types';
+import { WeeklyCalendarComponent } from '../weekly-calendar/weekly-calendar.component';
 
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { I18nService } from '../../services/i18n.service';
@@ -79,6 +80,7 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericTabGroupComponent,
     GenericTableComponent,
     GenericTooltipComponent,
+    WeeklyCalendarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './wrapper-orchestrator.component.html',

@@ -366,7 +366,12 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'text',
     'toast',
     'tooltip',
+    'weekly-calendar',
     'none',
+]);
+const ALLOWED_WEEKLY_CALENDAR_CONFIG_KEYS = new Set([
+    'weekday', 'localTime', 'durationMinutes', 'timeZone', 'summary', 'location',
+    'description', 'url', 'uid', 'ariaLabel',
 ]);
 const ALLOWED_GENERIC_COMPONENT_PREVIEW_CONFIG_KEYS = new Set([
     'id',
@@ -2735,6 +2740,18 @@ const isGenericComponentPreviewConfig = (value: unknown): boolean => {
     return true;
 };
 
+const isWeeklyCalendarConfig = (value: unknown): boolean => {
+    if (!isRecord(value) || !hasOnlyKnownKeys(value, ALLOWED_WEEKLY_CALENDAR_CONFIG_KEYS)) return false;
+    const {weekday, localTime, durationMinutes, timeZone, summary, location, description, url, uid, ariaLabel} = value;
+    return typeof weekday === 'number' && Number.isInteger(weekday) && weekday >= 0 && weekday <= 6
+        && typeof localTime === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(localTime)
+        && typeof durationMinutes === 'number' && Number.isInteger(durationMinutes) && durationMinutes > 0 && durationMinutes <= 1440
+        && timeZone === 'America/Mexico_City'
+        && [summary, location, description, ariaLabel].every((text) => typeof text === 'string' && text.trim().length > 0)
+        && isHttpsAbsoluteUrl(url) && url.startsWith('https://')
+        && typeof uid === 'string' && /^[a-z0-9-]+$/.test(uid);
+};
+
 const isComponentPayloadRecord = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
@@ -2801,6 +2818,10 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
 
     if (value['type'] === 'stats-counter') {
         return isStatsCounterConfig(value['config']);
+    }
+
+    if (value['type'] === 'weekly-calendar') {
+        return isWeeklyCalendarConfig(value['config']);
     }
 
     if (value['type'] === 'qr-code') {
