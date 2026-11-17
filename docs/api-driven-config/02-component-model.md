@@ -158,6 +158,19 @@ Author these fields when a draft needs scannable setup material, such as TOTP en
 
 For Cognito TOTP setup, bind `config.value` to the sanitized `setup.otpauthUri` returned by the auth BFF and keep the manual shared secret as a separate fallback. Do not render the full `otpauth://` URI as ordinary visible text.
 
+### `weekly-calendar` config
+
+`weekly-calendar` offers separate iCalendar downloads for the next session and an ongoing weekly series. It calculates the date from the published weekday and time. Each download includes reminders one day and one hour before the event. The receiving calendar app decides which reminders to keep.
+
+- `weekday` is an integer from `0` (Sunday) to `6` (Saturday).
+- `localTime` is the scheduled time in 24-hour `HH:mm` format.
+- `durationMinutes` is an integer from `1` to `1440`.
+- `timeZone` is `America/Mexico_City`, the supported time zone for this component.
+- `summary`, `location`, and `description` are the public event title, address or venue reference, and details.
+- `url` is the canonical HTTPS page for the event or venue.
+- `uid` is a stable group identifier that uses lowercase ASCII letters, digits, and hyphens. Reuse it wherever the same group appears.
+- `ariaLabel` gives the calendar control a distinct accessible name, including the event and its schedule.
+
 ## Composition / nesting
 
 A common pattern is:

@@ -4,6 +4,26 @@
   "description": "Schema for API or draft JSON component payloads. Child composition in JSON should stay ID-based; inline nested component objects are a runtime TypeScript composition feature and are intentionally out of scope for this payload schema.",
   "type": "object",
   "definitions": {
+    "weeklyCalendarConfig": {
+      "type": "object",
+      "required": [
+        "weekday", "localTime", "durationMinutes", "timeZone", "summary", "location",
+        "description", "url", "uid", "ariaLabel"
+      ],
+      "properties": {
+        "weekday": { "type": "integer", "minimum": 0, "maximum": 6 },
+        "localTime": { "type": "string", "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$" },
+        "durationMinutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
+        "timeZone": { "const": "America/Mexico_City" },
+        "summary": { "type": "string", "pattern": "\\S" },
+        "location": { "type": "string", "pattern": "\\S" },
+        "description": { "type": "string", "pattern": "\\S" },
+        "url": { "type": "string", "pattern": "^https://[^/?#@\\s\\\\\\u0000-\\u001f\\u007f]+(?:[/?#][^\\s\\\\\\u0000-\\u001f\\u007f]*)?$" },
+        "uid": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "ariaLabel": { "type": "string", "pattern": "\\S" }
+      },
+      "additionalProperties": false
+    },
     "interactionNumericSource": {
       "oneOf": [
         {
@@ -956,6 +976,19 @@
             "then": {
               "properties": {
                 "config": { "$ref": "#/definitions/statsCounterConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "weekly-calendar" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/weeklyCalendarConfig" }
               },
               "required": ["config"]
             }
