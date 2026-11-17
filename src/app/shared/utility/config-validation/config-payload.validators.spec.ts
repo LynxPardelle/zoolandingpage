@@ -2659,6 +2659,33 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(valid)).toBeTrue();
     });
 
+    it('requires a valid weekly timetable and a safe event URL for calendar controls', () => {
+        const config = {
+            weekday: 0,
+            localTime: '11:30',
+            durationMinutes: 90,
+            timeZone: 'America/Mexico_City',
+            summary: 'Swing class',
+            location: 'Mexico City',
+            description: 'Confirm the meeting point before attending.',
+            url: 'https://example.com/schedule#park',
+            uid: 'swing-sunday',
+            ariaLabel: 'Add Sunday swing class to calendar',
+        };
+        const payloadFor = (calendarConfig: object) => createComponentsPayload({
+            calendar: {id: 'calendar', type: 'weekly-calendar', config: calendarConfig},
+        });
+
+        expect(isComponentsPayload(payloadFor(config))).toBeTrue();
+        for (const invalid of [
+            {weekday: 7}, {weekday: '0'}, {localTime: '24:00'}, {durationMinutes: 1.5},
+            {timeZone: 'UTC'}, {url: 'javascript:void(0)'}, {url: 'https://name@example.com/'},
+            {uid: 'unsafe/filename'}, {summary: ''}, {ariaLabel: ' '}, {unknownField: true},
+        ]) {
+            expect(isComponentsPayload(payloadFor({...config, ...invalid}))).toBeFalse();
+        }
+    });
+
     it('accepts generic content-builder primitive payloads', () => {
         const valid = createComponentsPayload({
             articleTable: {

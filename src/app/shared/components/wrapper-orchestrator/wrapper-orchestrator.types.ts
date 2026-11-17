@@ -23,6 +23,7 @@ import type { TGenericTableConfig } from "../generic-table/generic-table.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
 import type { TooltipConfig } from "../generic-tooltip/generic-tooltip.types";
 import type { TInteractionScopeConfig } from "../interaction-scope/interaction-scope.types";
+import type { WeeklyCalendarConfig } from '../weekly-calendar/weekly-calendar';
 import type { TDynamicValue } from '../../types/component-runtime.types';
 
 export type TGenericStatsCounterOrchestratorConfig = () => TGenericStatsCounterConfig;
@@ -166,6 +167,7 @@ export type TGenericComponentType =
     | 'text'
     | 'toast'
     | 'tooltip'
+    | 'weekly-calendar'
     | 'input'
     | 'none';
 
@@ -291,6 +293,10 @@ export type TGenericComponent = {
         {
             readonly type: 'tab-group';
             readonly config: TabGroupConfig;
+        } |
+        {
+            readonly type: 'weekly-calendar';
+            readonly config: WeeklyCalendarConfig;
         } |
         {
             readonly type: 'none';
