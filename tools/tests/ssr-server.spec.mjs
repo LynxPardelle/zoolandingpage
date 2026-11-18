@@ -1448,7 +1448,9 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(articleHtml, /"articleSection":"web"/);
   assert.match(articleHtml, /"keywords":"seo, blog-builder, guias, componentes"/);
   assert.match(articleHtml, /"publisher":\{[^}]*"name":"zoositioweb"[^}]*\}/);
-  assert.match(articleHtml, /"image":"https:\/\/assets\.zoolandingpage\.com\.mx\/zoolandingpage\.com\.mx\/shared\/seo-images\/zoolandingpage-zoositioweb-default-logo-card\.jpg"/);
+  const articleCover = [runtimeSiteConfig.runtime.contentHubs].flat()[0].publicArticles.items
+    .find(article => article.path === '/blog/web/blog-builder-seo').imageSrc;
+  assert.equal(JSON.parse(extractJsonLd(articleHtml)).image, articleCover, 'BlogPosting uses the article cover before the site logo');
   assert.match(articleHtml, /Cómo crear artículos visuales con Zoosite/);
   assert.doesNotMatch(stripNonVisibleHtml(articleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(articleHtml));
@@ -1904,6 +1906,145 @@ test('production SSR server uses test runtime fallback for shared preview conten
   assert.deepEqual(prodFallbackRequests, []);
   assert.deepEqual(primaryRequests, []);
   assert.equal(getStderr(), '');
+});
+
+test('article SSR preserves published SEO and shares the article cover with safe fallbacks', async (t) => {
+  const domain = 'zooberiahsystems.com';
+  const owner = 'zoositioweb.com.mx';
+  const origin = `https://${domain}`;
+  const fallbackImage = 'https://assets.example.com/site-card.webp';
+  const cases = [
+    { slug: 'authored', imageSrc: '/covers/authored.webp', imageAlt: 'Equipo revisando una campaña',
+      seo: { title: 'Landing pages para campañas | ZooBeriah', description: 'Una descripción editorial para buscadores.' } },
+    { slug: 'shared', canonical: `https://${owner}/blog/web/source`, shared: true,
+      imageSrc: 'https://assets.example.com/shared.webp', imageAlt: 'El proyecto compartido',
+      seo: { title: 'SEO del artículo compartido', description: 'Descripción del artículo compartido.' } },
+    { slug: 'shell', canonical: `${origin}/blog`, imageSrc: '/covers/shell.webp', imageAlt: 'El artículo con SEO de plantilla',
+      seo: { title: 'Blog genérico', description: 'Descripción genérica del blog.' } },
+    { slug: 'without-cover', seo: {} },
+    { slug: 'page-cover', seo: { openGraph: { image: '/covers/page-social.webp', 'image:alt': 'Portada social editorial' } } },
+    { slug: 'cover-without-alt', imageSrc: '/covers/without-alt.webp', seo: {} },
+    { slug: 'unsafe-cover', imageSrc: 'javascript:alert(1)', seo: {} },
+    { slug: 'malformed-cover', imageSrc: 'http://[', seo: {} },
+    { slug: 'runtime-templates', query: '?campaign=anuncios&image=programa+restaurante',
+      seo: { title: '{{var:campaign.title|titleCase}} | {{query:campaign|upper}}',
+        description: '{{var:contentHub.currentArticle.summary}} ({{query:campaign|titleCase}})',
+        openGraph: { image: '{{var:campaign.coverDirectory}}/{{query:image|uriComponent}}.webp',
+          'image:alt': '{{var:contentHub.currentArticle.title}}' } },
+      expectedTitle: 'Landing Pages Empresas | ANUNCIOS', expectedDescription: 'Resumen visible runtime-templates. (Anuncios)',
+      expectedImage: `${origin}/covers/programa%20restaurante.webp`, expectedImageAlt: 'Título visible runtime-templates' },
+    { slug: 'runtime-image', query: '?image=programa+restaurante',
+      seo: { openGraph: { image: '{{var:campaign.coverDirectory}}/{{query:image|uriComponent}}.webp',
+        'image:alt': '{{var:contentHub.currentArticle.title}}' } },
+      expectedImage: `${origin}/covers/programa%20restaurante.webp`, expectedImageAlt: 'Título visible runtime-image' },
+    { slug: 'localized-image', seo: { openGraph: {
+      image: { es: '{{var:campaign.coverDirectory}}/local-es.webp', en: '/covers/local-en.webp' },
+      'image:alt': { es: 'Portada {{var:contentHub.currentArticle.title}}', en: 'English cover' } } },
+      expectedImage: `${origin}/covers/local-es.webp`, expectedImageAlt: 'Portada Título visible localized-image' },
+    { slug: 'localized-site-image', seo: {}, siteOpenGraph: {
+      image: { es: '{{var:campaign.coverDirectory}}/site-es.webp', en: '/covers/site-en.webp' },
+      'image:alt': { es: 'Imagen del sitio en español', en: 'English site cover' } },
+      expectedImage: `${origin}/covers/site-es.webp`, expectedImageAlt: 'Imagen del sitio en español' },
+    { slug: 'templated-canonical', canonical: `${origin}{{var:contentHub.currentArticle.path}}`,
+      seo: { title: 'SEO con canonical dinámico', description: 'Descripción con canonical dinámico.' } },
+    { slug: 'missing-templates', seo: { title: '{{var:missing.title}}', description: '{{var:missing.description}}',
+      openGraph: { image: '{{var:missing.image}}' } }, expectedArticleFallback: true },
+    { slug: 'unpublished-variables', sourceStage: 'draft',
+      seo: { title: '{{var:campaign.title}}', description: '{{var:campaign.description}}',
+        openGraph: { image: '{{var:campaign.coverDirectory}}' } }, expectedArticleFallback: true },
+  ];
+  const articles = cases.map(item => ({
+    articleId: item.slug, path: `/blog/web/${item.slug}`, canonicalPath: item.shared ? '/blog/web/source' : `/blog/web/${item.slug}`,
+    primarySite: item.shared ? undefined : domain, locale: 'es', categorySlug: 'web', status: 'published', visibility: 'public',
+    title: `Título visible ${item.slug}`, summary: `Resumen visible ${item.slug}.`,
+    publishedAt: '2026-11-17T12:00:00Z', imageSrc: item.imageSrc, imageAlt: item.imageAlt,
+  }));
+  const routes = [{ path: '/', pageId: 'default' }, { path: '/blog', pageId: 'blog' },
+    { path: '/blog/:categorySlug/:articleSlug', pageId: 'blog-article' }];
+  const config = { version: 1, domain, defaultPageId: 'default', routes,
+    site: { seo: { canonicalOrigin: origin, title: 'SEO del sitio', description: 'Descripción del sitio.',
+      defaultImage: fallbackImage, openGraph: { title: 'Social del sitio', description: 'Resumen social del sitio.' },
+      twitter: { title: 'Twitter del sitio' }, robots: 'index,follow' } },
+    runtime: { contentHubs: [{ hubId: 'zoosite-main', ownerDraftDomain: owner, source: 'authorized', canonicalMode: 'noindex-shared',
+      routeBasePath: '/blog', listPath: '/blog', articlePathPattern: '/blog/:categorySlug/:articleSlug',
+      defaultLocale: 'es', locales: ['es'], publicArticles: articles }] } };
+  const api = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url, 'http://127.0.0.1');
+    if (!['/runtime-bundle', '/site-config'].includes(url.pathname)) { res.writeHead(404).end('{}'); return; }
+    if (url.pathname === '/site-config') { res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(config)); return; }
+    const path = url.searchParams.get('path') || '/';
+    const item = cases.find(entry => path === `/blog/web/${entry.slug}`);
+    const pageId = item ? 'blog-article' : path === '/blog' ? 'blog' : 'default';
+    const identity = { version: 1, domain, pageId };
+    const routeConfig = item?.siteOpenGraph
+      ? { ...config, site: { ...config.site, seo: { ...config.site.seo, openGraph: item.siteOpenGraph } } } : config;
+    const seo = item ? { ...item.seo, canonical: item.canonical || `${origin}${path}`, robots: 'index,follow' }
+      : { title: 'Portada del sitio', description: 'Descripción de portada.', canonical: `${origin}${path}` };
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({
+      ...identity, route: { path, pageId }, sourceStage: item?.sourceStage || 'published', lang: 'es', siteConfig: routeConfig,
+      pageConfig: { ...identity, rootIds: [], seo }, components: { ...identity, components: [] },
+      variables: { ...identity, variables: { campaign: { title: 'landing pages empresas',
+        description: 'Descripción de campaña publicada.', coverDirectory: '/covers' },
+        contentHub: { currentArticle: { title: 'Artículo de otra ruta', summary: 'Resumen de otra ruta.', path: '/blog/web/otra-ruta' } } } },
+      i18n: { ...identity, lang: 'es', dictionary: {} }, metadata: { statusCode: 200 },
+    }));
+  });
+  const { port } = await startProductionServer(t, { CONFIG_API_URL: api, CONFIG_API_SERVER_FALLBACK_URL: '' });
+  const get = path => fetch(`http://127.0.0.1:${port}${path}`, {
+    headers: { Host: domain, 'X-Forwarded-Host': domain, 'X-Forwarded-Proto': 'https' },
+  });
+  for (const [index, item] of cases.entries()) {
+    await t.test(item.slug, async () => {
+      const article = articles[index];
+      const response = await get(article.path + (item.query || ''));
+      const html = await response.text();
+      assert.equal(response.status, 200, 'invalid cover metadata must not break the public page');
+      const expectedTitle = item.expectedTitle || (item.slug === 'shell' || item.expectedArticleFallback ? article.title : item.seo.title || article.title);
+      const expectedDescription = item.expectedDescription || (item.slug === 'shell' || item.expectedArticleFallback ? article.summary : item.seo.description || article.summary);
+      const expectedImage = item.expectedImage || (['authored', 'shared', 'shell', 'cover-without-alt'].includes(item.slug) ? new URL(item.imageSrc, origin).href
+        : item.slug === 'page-cover' ? `${origin}/covers/page-social.webp` : fallbackImage);
+      assert.ok(html.includes(`<title>${expectedTitle}</title>`), 'authored article SEO wins; generic shell SEO falls back to the visible article');
+      for (const attribute of ['name="description"', 'property="og:description"', 'name="twitter:description"']) {
+        assert.ok(html.includes(`<meta ${attribute} content="${expectedDescription}">`), attribute);
+      }
+      for (const attribute of ['property="og:title"', 'name="twitter:title"']) {
+        assert.ok(html.includes(`<meta ${attribute} content="${expectedTitle}">`), attribute);
+      }
+      for (const attribute of ['property="og:image"', 'name="twitter:image"']) {
+        assert.ok(html.includes(`<meta ${attribute} content="${expectedImage}">`), attribute);
+      }
+      if (item.imageAlt) {
+        assert.ok(html.includes(`<meta property="og:image:alt" content="${item.imageAlt}">`));
+        assert.ok(html.includes(`<meta name="twitter:image:alt" content="${item.imageAlt}">`));
+      }
+      if (item.expectedImageAlt) {
+        assert.ok(html.includes(`<meta property="og:image:alt" content="${item.expectedImageAlt}">`));
+        assert.ok(html.includes(`<meta name="twitter:image:alt" content="${item.expectedImageAlt}">`));
+      }
+      if (item.slug === 'page-cover') {
+        assert.ok(html.includes('<meta property="og:image:alt" content="Portada social editorial">'));
+      }
+      if (item.slug === 'cover-without-alt') {
+        assert.ok(html.includes(`<meta property="og:image:alt" content="${article.title}">`), 'cover alt falls back to its article title');
+      }
+      assert.ok(/<script type="application\/ld\+json" data-zlp-structured-data-key="sd:bootstrap:\d+">/.test(html),
+        'article JSON-LD is owned by the bootstrap service so hydration reuses it');
+      const entries = [...html.matchAll(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)]
+        .flatMap(match => { const value = JSON.parse(match[1]); return Array.isArray(value) ? value : [value]; });
+      assert.equal(entries.filter(entry => entry['@type'] === 'BlogPosting').length, 1);
+      const posting = entries.find(entry => entry['@type'] === 'BlogPosting');
+      assert.equal(posting?.image, expectedImage);
+      assert.equal(posting?.headline, article.title, 'structured data retains the visible headline');
+      const canonical = item.shared ? item.canonical : `${origin}${article.path}`;
+      assert.ok(html.includes(`<link rel="canonical" href="${canonical}">`));
+      assert.equal(posting?.mainEntityOfPage, canonical);
+      assert.ok(html.includes(`<meta name="robots" content="${item.shared ? 'noindex,follow' : 'index,follow'}">`));
+      assert.doesNotMatch(html, /(?:property="og:image"|name="twitter:image") content="(?:javascript:|http:\/\/\[)/);
+    });
+  }
+  const home = await (await get('/')).text();
+  assert.ok(home.includes('<title>Portada del sitio</title>'), 'non-article page SEO remains authored');
+  assert.ok(home.includes(`<meta property="og:image" content="${fallbackImage}">`), 'site social defaults remain available');
 });
 
 test('shared preview uses owner SEO for copies and sends crawler-readable noindex', async (t) => {

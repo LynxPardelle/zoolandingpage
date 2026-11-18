@@ -20,6 +20,7 @@ import {
 } from '@/app/shared/utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { resolveNavigationTarget } from '@/app/shared/utility/navigation/navigation-target.utility';
+import { resolveMetadataTemplates, type TMetadataTemplateContext } from '@/app/shared/utility/metadata-template.utility';
 import { classifyProtectedOriginRequest, isProtectedOriginBinding, projectProtectedAssetAttributes, readPackagedProtectedOrigin, resolveProtectedRuntimeEnvironment, type ProtectedOriginBinding, type ProtectedOriginContext } from '@/app/shared/utility/auth/protected-admin-origin.utility';
 
 // Deployment selection is server-owned. Never load an origin binding from draft query data.
@@ -263,6 +264,8 @@ type TRuntimeBundlePayload = {
   readonly metadata?: unknown;
   readonly pageId?: unknown;
   readonly route?: unknown;
+  readonly variables?: unknown;
+  readonly sourceStage?: unknown;
 };
 
 type TLocalComponentsPayload = {
@@ -3454,31 +3457,28 @@ function findContentHubArticleForRequest(
   return undefined;
 }
 
-function resolveContentHubArticleStructuredDataImage(seo: TSiteSeoConfig | null, origin: string): string {
-  const openGraphImage = isRecord(seo?.openGraph) ? cleanString(seo.openGraph['image']) : '';
-  const image = openGraphImage || cleanString(seo?.defaultImage);
+function resolveContentHubImageUrl(value: unknown, origin: string): string {
+  const image = cleanString(value);
   if (!image) {
     return '';
   }
 
   try {
-    return new URL(image, `${origin.replace(/\/$/, '')}/`).toString();
+    const url = new URL(image, `${origin.replace(/\/$/, '')}/`);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
   } catch {
-    return image;
+    return '';
   }
 }
 
 function buildContentHubArticleStructuredData(
-  req: express.Request,
   host: string,
   siteConfig: TLocalSiteConfig | null,
   article: TContentHubPublicArticle,
   canonicalUrl: string,
+  image: string,
 ): Record<string, unknown> {
-  const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
   const seo = resolveEffectiveSeoConfig(host, siteConfig);
-  const image = fixedJournalArticle(siteConfig, article) && article.imageSrc
-    ? new URL(article.imageSrc, origin).href : resolveContentHubArticleStructuredDataImage(seo, origin);
   const publisherName = cleanString(seo?.siteName) || cleanString(siteConfig?.domain);
   return {
     '@context': 'https://schema.org',
@@ -3506,39 +3506,105 @@ function articleCanonicalUrl(article: TContentHubPublicArticle, origin: string, 
   return fixedJournalArticle(siteConfig, article) ? addLangParam(url, cleanString(article.locale)) : url;
 }
 
+function isArticleScopedSeo(pageSeo: TPageSeoConfig | undefined, lang: string, origin: string, articleUrl: string, canonicalUrl: string): boolean {
+  const configuredCanonical = resolveLocalizedSeoString(pageSeo?.canonical, lang);
+  if (!configuredCanonical || configuredCanonical.includes('{{')) {
+    return false;
+  }
+
+  try {
+    const configured = new URL(configuredCanonical, `${origin}/`);
+    return [articleUrl, canonicalUrl].some(value => {
+      const target = new URL(value, `${origin}/`);
+      return configured.origin === target.origin
+        && normalizeRoutePath(configured.pathname) === normalizeRoutePath(target.pathname);
+    });
+  } catch {
+    return false;
+  }
+}
+
+function contentHubMetadataTemplateContext(
+  req: express.Request,
+  article: TContentHubPublicArticle,
+  siteConfig: TLocalSiteConfig,
+  runtimeBundle: TRuntimeBundlePayload | null,
+): TMetadataTemplateContext {
+  const bundleRoute = isRecord(runtimeBundle?.route) ? runtimeBundle.route : null;
+  const bundleAuth = isRecord(bundleRoute?.['auth']) ? bundleRoute['auth'] : null;
+  const publicRoute = resolveLocalRoute(siteConfig, req.path)?.auth?.required !== true && bundleAuth?.['required'] !== true;
+  const payload = publicRoute && runtimeBundle?.sourceStage === 'published' && isRecord(runtimeBundle.variables)
+    ? runtimeBundle.variables : null;
+  const publishedVariables = isRecord(payload?.['variables']) ? payload['variables'] : {};
+  const variables = {
+    ...publishedVariables,
+    contentHub: {
+      ...(isRecord(publishedVariables['contentHub']) ? publishedVariables['contentHub'] : {}),
+      currentArticle: article,
+    },
+  };
+  return {
+    getVariable: path => path.split('.').map(key => key.trim()).filter(Boolean).reduce<unknown>((value, key) => (
+      value !== null && typeof value === 'object' && Object.hasOwn(value, key)
+        ? (value as Record<string, unknown>)[key] : undefined
+    ), variables),
+    getQueryParam: key => {
+      const value = req.query[key];
+      const first = Array.isArray(value) ? value[0] : value;
+      return typeof first === 'string' ? first : undefined;
+    },
+  };
+}
+
 function withContentHubSeoPageConfig(
   req: express.Request,
   host: string,
   delivery: ReturnType<typeof findContentHubArticleForRequest>,
   pageConfig: TLocalPageConfig | null,
   sharedSeo: TSharedContentHubArticleSeo | null,
+  runtimeBundle: TRuntimeBundlePayload | null,
 ): TLocalPageConfig | null {
   if (!delivery) {
     return pageConfig;
   }
 
-  const { article, siteConfig } = delivery;
+  const { article, siteConfig, lang } = delivery;
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
   const canonical = sharedSeo?.canonical ?? articleCanonicalUrl(article, origin, host, siteConfig);
-  const image = article.imageSrc ? new URL(article.imageSrc, origin).href : '';
-  const journalSocial = fixedJournalArticle(siteConfig, article) ? {
-    openGraph: {type:'article',title:cleanString(article.title),description:cleanString(article.summary),url:canonical,image,'image:alt':cleanString(article.imageAlt)},
-    twitter: {card:'summary_large_image',title:cleanString(article.title),description:cleanString(article.summary),image},
-  } : {};
+  const templateContext = contentHubMetadataTemplateContext(req, article, siteConfig, runtimeBundle);
+  const resolvedPageSeo = resolveMetadataTemplates(pageConfig?.seo, templateContext);
+  const resolvedSiteSeo = resolveMetadataTemplates(resolveEffectiveSeoConfig(host, siteConfig), templateContext);
+  const pageSeo = isRecord(resolvedPageSeo) ? resolvedPageSeo as TPageSeoConfig : undefined;
+  const siteSeo = isRecord(resolvedSiteSeo) ? resolvedSiteSeo as TSiteSeoConfig : null;
+  const scopedPageSeo = isRecord(runtimeBundle?.pageConfig)
+    && isArticleScopedSeo(pageSeo, lang, origin, new URL(normalizeRoutePath(article.path), `${origin}/`).href, canonical);
+  const title = (scopedPageSeo ? resolveLocalizedSeoString(pageSeo?.title, lang) : '')
+    || cleanString(article.title) || resolveLocalizedSeoString(siteSeo?.title, lang);
+  const description = (scopedPageSeo ? resolveLocalizedSeoString(pageSeo?.description, lang) : '')
+    || cleanString(article.summary) || resolveLocalizedSeoString(siteSeo?.description, lang);
+  const pageOpenGraph = resolveLocalizedSeoRecord(pageSeo?.openGraph, lang);
+  const siteOpenGraph = resolveLocalizedSeoRecord(siteSeo?.openGraph, lang);
+  const cover = resolveContentHubImageUrl(article.imageSrc, origin);
+  const pageImage = resolveContentHubImageUrl(resolveLocalizedSeoString(pageOpenGraph['image'], lang), origin);
+  const siteImage = resolveContentHubImageUrl(resolveLocalizedSeoString(siteOpenGraph['image'], lang), origin);
+  const image = cover || pageImage || siteImage || resolveContentHubImageUrl(resolveLocalizedSeoString(siteSeo?.defaultImage, lang), origin);
+  const imageAlt = cover ? cleanString(article.imageAlt) || cleanString(article.title)
+    : pageImage ? resolveLocalizedSeoString(pageOpenGraph['image:alt'], lang) : resolveLocalizedSeoString(siteOpenGraph['image:alt'], lang);
   return {
     ...(pageConfig ?? {}),
     seo: {
-      ...(pageConfig?.seo ?? {}),
-      title: cleanString(article.title) || pageConfig?.seo?.title,
-      description: cleanString(article.summary) || pageConfig?.seo?.description,
+      ...(pageSeo ?? {}),
+      title,
+      description,
       canonical,
-      robots: sharedSeo?.robots ?? (cleanString(article.robots) || pageConfig?.seo?.robots),
-      ...journalSocial,
+      robots: sharedSeo?.robots ?? (cleanString(article.robots) || pageSeo?.robots),
+      openGraph: { type: 'article', title, description, url: canonical, image, 'image:alt': imageAlt },
+      twitter: { card: 'summary_large_image', title, description, image, 'image:alt': imageAlt },
     },
     structuredData: {
       entries: [
         ...readStructuredDataEntries(pageConfig).filter((entry) => !hasStructuredDataType(entry, 'BlogPosting')),
-        buildContentHubArticleStructuredData(req, host, siteConfig, article, canonical),
+        buildContentHubArticleStructuredData(host, siteConfig, article, canonical, image),
       ],
     },
   };
@@ -3651,6 +3717,8 @@ function buildSeoTextHeadHtml(
   const twitterTitle = cleanString(twitter['title']) || seoTitle;
   const twitterDescription = cleanString(twitter['description']) || seoDescription;
   const twitterImage = cleanString(twitter['image']) || ogImage;
+  const ogImageAlt = cleanString(openGraph['image:alt']);
+  const twitterImageAlt = cleanString(twitter['image:alt']) || ogImageAlt;
 
   return [
     `<title>${escapeHtmlText(seoTitle)}</title>`,
@@ -3661,11 +3729,13 @@ function buildSeoTextHeadHtml(
     `<meta property="og:type" content="${escapeHtmlAttribute(ogType)}">`,
     `<meta property="og:url" content="${escapeHtmlAttribute(ogUrl)}">`,
     ogImage ? `<meta property="og:image" content="${escapeHtmlAttribute(ogImage)}">` : '',
+    ogImage && ogImageAlt ? `<meta property="og:image:alt" content="${escapeHtmlAttribute(ogImageAlt)}">` : '',
     `<meta property="og:site_name" content="${escapeHtmlAttribute(fallbackSiteName)}">`,
     `<meta name="twitter:card" content="${escapeHtmlAttribute(twitterCard)}">`,
     `<meta name="twitter:title" content="${escapeHtmlAttribute(twitterTitle)}">`,
     twitterDescription ? `<meta name="twitter:description" content="${escapeHtmlAttribute(twitterDescription)}">` : '',
     twitterImage ? `<meta name="twitter:image" content="${escapeHtmlAttribute(twitterImage)}">` : '',
+    twitterImage && twitterImageAlt ? `<meta name="twitter:image:alt" content="${escapeHtmlAttribute(twitterImageAlt)}">` : '',
   ].filter(Boolean).join('\n');
 }
 
@@ -3737,7 +3807,7 @@ async function decorateHtmlResponse(
     ? resolveSharedContentHubArticleSeo(contentHubDelivery.siteConfig, req.path, contentHubDelivery.lang,
       contentHubDelivery.article.articleId, resolveLocalizedSeoString(requestPageConfig?.seo?.robots, contentHubDelivery.lang))
     : null;
-  const pageConfig = withContentHubSeoPageConfig(req, lookupDomain, contentHubDelivery, requestPageConfig, sharedSeo);
+  const pageConfig = withContentHubSeoPageConfig(req, lookupDomain, contentHubDelivery, requestPageConfig, sharedSeo, routeRuntimeBundle);
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   applyProtectedHtmlCacheHeaders(headers, siteConfig, req.path);
@@ -3761,7 +3831,7 @@ async function decorateHtmlResponse(
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
     buildBrowserIconsHeadHtml(siteConfig),
     buildRobotsHeadHtml(req, siteConfig, pageConfig),
-    buildStructuredDataHeadHtml(pageConfig, !!journalSeoConfig?.runtime?.contentHubs?.some(isFixedJournal)),
+    buildStructuredDataHeadHtml(pageConfig, !!contentHubDelivery || !!journalSeoConfig?.runtime?.contentHubs?.some(isFixedJournal)),
     buildCanonicalHeadHtml(
       req,
       lookupDomain,
