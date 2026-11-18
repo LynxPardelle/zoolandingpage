@@ -837,6 +837,168 @@ describe('ConfigBootstrapService', () => {
         }));
     });
 
+    it('preserves published article SEO and uses its cover across social and structured metadata', async () => {
+        const config = createContentHubSiteConfig();
+        const hub = config.runtime!.contentHubs![0];
+        const articles = hub.publicArticles as readonly TContentHubRuntimeArticleSummary[];
+        const image = 'https://assets.example.com/article-cover.webp';
+        store.setSiteConfig({ ...config, runtime: { contentHubs: [{ ...hub,
+            publicArticles: articles.map(article => ({ ...article, imageSrc: image, imageAlt: 'A team reviewing a website' })),
+        }] } });
+        mockSuccessfulBootstrapPayloads();
+        source.loadPageConfig.and.resolveTo({
+            version: 1, pageId: 'blog-article', domain: config.domain, rootIds: ['blogRoot'],
+            seo: {
+                title: 'Published SEO title | ZooSitioWeb', description: 'Published SEO description',
+                canonical: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+                openGraph: { image: 'https://assets.example.com/shell.webp', 'image:alt': 'Shell image' },
+                twitter: { title: 'Shell title', image: 'https://assets.example.com/shell.webp' },
+            },
+            structuredData: { entries: [{ '@type': 'BlogPosting', headline: 'Stale article', image: 'stale.webp' }] },
+        });
+
+        await service.load({ domain: config.domain, pageId: 'blog-article', lang: 'es', routePath: articles[0].path });
+
+        expect(store.seo()).toEqual(jasmine.objectContaining({
+            title: 'Published SEO title | ZooSitioWeb', description: 'Published SEO description',
+            openGraph: jasmine.objectContaining({ title: 'Published SEO title | ZooSitioWeb',
+                description: 'Published SEO description', image, 'image:alt': 'A team reviewing a website' }),
+            twitter: jasmine.objectContaining({ card: 'summary_large_image', title: 'Published SEO title | ZooSitioWeb',
+                description: 'Published SEO description', image, 'image:alt': 'A team reviewing a website' }),
+        }));
+        const posts = store.structuredData()!.entries.filter(entry => entry['@type'] === 'BlogPosting');
+        expect(posts.length).toBe(1);
+        expect(posts[0]).toEqual(jasmine.objectContaining({ headline: 'Web Article', image }));
+        expect((variableStore.get('contentHub.currentArticle') as TContentHubRuntimeArticleSummary).title).toBe('Web Article');
+    });
+
+    it('changes article cover metadata on navigation and falls back safely for an invalid cover', async () => {
+        const config = createContentHubSiteConfig();
+        const hub = config.runtime!.contentHubs![0];
+        const articles = hub.publicArticles as readonly TContentHubRuntimeArticleSummary[];
+        store.setSiteConfig({ ...config, runtime: { contentHubs: [{ ...hub,
+            publicArticles: articles.map((article, index) => ({ ...article,
+                imageSrc: index === 0 ? '/covers/first.webp' : 'javascript:alert(1)',
+                imageAlt: index === 0 ? 'First article cover' : 'Invalid cover',
+            })),
+        }] } });
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({ domain: config.domain, pageId: 'blog-article', lang: 'es', routePath: articles[0].path });
+        expect(store.seo()?.openGraph?.['image']).toBe('https://zoositioweb.com.mx/covers/first.webp');
+        expect(store.seo()?.twitter?.['image']).toBe('https://zoositioweb.com.mx/covers/first.webp');
+
+        await service.load({ domain: config.domain, pageId: 'blog-article', lang: 'es', routePath: articles[1].path });
+        const fallback = config.site?.seo?.defaultImage;
+        expect(store.seo()?.title).toBe('News Article');
+        expect(store.seo()?.openGraph?.['image']).toBe(fallback);
+        expect(store.seo()?.twitter?.['image']).toBe(fallback);
+        expect(store.seo()?.openGraph?.['image:alt']).not.toBe('First article cover');
+        expect(store.structuredData()?.entries).toContain(jasmine.objectContaining({ headline: 'News Article', image: fallback }));
+    });
+
+    it('uses the page social image in structured data when an article has no cover', async () => {
+        const config = createContentHubSiteConfig();
+        store.setSiteConfig(config);
+        mockSuccessfulBootstrapPayloads();
+        const image = 'https://assets.example.com/page-social.webp';
+        source.loadPageConfig.and.resolveTo({ version: 1, pageId: 'blog-article', domain: config.domain, rootIds: ['blogRoot'],
+            seo: { canonical: '/blog', openGraph: { image, 'image:alt': 'Page social image' } },
+        });
+
+        await service.load({ domain: config.domain, pageId: 'blog-article', lang: 'es', routePath: '/blog/web/blog-builder-seo' });
+
+        expect(store.seo()?.openGraph?.['image']).toBe(image);
+        expect(store.seo()?.twitter?.['image']).toBe(image);
+        expect(store.structuredData()?.entries).toContain(jasmine.objectContaining({ image }));
+    });
+
+    for (const populated of [true, false]) {
+        it(`resolves localized article SEO before applying precedence (${populated ? 'authored' : 'empty'})`, async () => {
+            const config = createContentHubSiteConfig();
+            store.setSiteConfig(config);
+            mockSuccessfulBootstrapPayloads();
+            source.loadPageConfig.and.resolveTo({ version: 1, pageId: 'blog-article', domain: config.domain, rootIds: ['blogRoot'],
+                seo: {
+                    canonical: { es: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo' },
+                    title: { es: populated ? 'Título SEO publicado' : '', en: '' },
+                    description: { es: populated ? 'Descripción SEO publicada' : '', en: '' },
+                },
+            });
+
+            await service.load({ domain: config.domain, pageId: 'blog-article', lang: 'es', routePath: '/blog/web/blog-builder-seo' });
+
+            expect(store.seo()?.title).toBe(populated ? 'Título SEO publicado' : 'Web Article');
+            expect(store.seo()?.description).toBe(populated ? 'Descripción SEO publicada' : 'Article summary for SEO');
+        });
+    }
+
+    it('resolves a configured social image template before validating its URL', async () => {
+        const config = createContentHubSiteConfig();
+        store.setSiteConfig(config);
+        mockSuccessfulBootstrapPayloads();
+        const image = 'https://assets.example.com/resolved-social.webp';
+        source.loadVariables.and.resolveTo({ version: 1, pageId: 'blog-article', domain: config.domain,
+            variables: { socialImage: image },
+        });
+        source.loadPageConfig.and.resolveTo({ version: 1, pageId: 'blog-article', domain: config.domain, rootIds: ['blogRoot'],
+            seo: { openGraph: { image: '{{var:socialImage}}' } },
+        });
+
+        await service.load({ domain: config.domain, pageId: 'blog-article', lang: 'es', routePath: '/blog/web/blog-builder-seo' });
+
+        expect(store.seo()?.openGraph?.['image']).toBe(image);
+        expect(store.seo()?.twitter?.['image']).toBe(image);
+        expect(store.structuredData()?.entries).toContain(jasmine.objectContaining({ image }));
+    });
+
+    for (const localizedRecord of [false, true]) {
+    it(`resolves a localized social image and alt before the site fallback (${localizedRecord ? 'record' : 'field'})`, async () => {
+        const config = createContentHubSiteConfig();
+        store.setSiteConfig(config);
+        mockSuccessfulBootstrapPayloads();
+        source.loadPageConfig.and.resolveTo({ version: 1, pageId: 'blog-article', domain: config.domain, rootIds: ['blogRoot'],
+            seo: { openGraph: localizedRecord
+                ? { es: { image: '/covers/spanish.webp', 'image:alt': 'Portada en español' }, en: { image: '/covers/english.webp' } }
+                : { image: { es: '/covers/spanish.webp', en: '/covers/english.webp' }, 'image:alt': { es: 'Portada en español', en: 'English cover' } } },
+        });
+
+        await service.load({ domain: config.domain, pageId: 'blog-article', lang: 'es', routePath: '/blog/web/blog-builder-seo' });
+
+        const image = 'https://zoositioweb.com.mx/covers/spanish.webp';
+        expect(store.seo()?.openGraph?.['image']).toBe(image);
+        expect(store.seo()?.twitter?.['image']).toBe(image);
+        expect(store.seo()?.openGraph?.['image:alt']).toBe('Portada en español');
+        expect(store.seo()?.twitter?.['image:alt']).toBe('Portada en español');
+        expect(store.structuredData()?.entries).toContain(jasmine.objectContaining({ image }));
+    });
+    }
+
+    it('retains authored SEO scoped to the rendered shared-copy path', async () => {
+        const config = createContentHubSiteConfig();
+        const hub = config.runtime!.contentHubs![0];
+        const [article] = hub.publicArticles as readonly TContentHubRuntimeArticleSummary[];
+        const path = '/blog/web/shared-copy';
+        const domain = 'zooberiahsystems.com';
+        store.setSiteConfig({ ...config, domain,
+            site: { ...config.site, seo: { canonicalOrigin: `https://${ domain }` } },
+            runtime: { contentHubs: [{ ...hub, source: 'authorized', canonicalMode: 'noindex-shared',
+                publicArticles: [{ ...article, path }],
+            }] },
+        });
+        mockSuccessfulBootstrapPayloads();
+        source.loadPageConfig.and.resolveTo({ version: 1, pageId: 'blog-article', domain, rootIds: ['blogRoot'],
+            seo: { canonical: `https://${ domain }${ path }`, title: 'Authored shared-copy title', description: 'Authored shared-copy description' },
+        });
+
+        await service.load({ domain, pageId: 'blog-article', lang: 'es', routePath: path });
+
+        expect(store.seo()).toEqual(jasmine.objectContaining({ title: 'Authored shared-copy title',
+            description: 'Authored shared-copy description', robots: 'noindex,follow',
+            canonical: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+        }));
+    });
+
     it('preserves explicit canonical suppression while enriching article seo', async () => {
         store.setSiteConfig(createContentHubSiteConfig());
         mockSuccessfulBootstrapPayloads();

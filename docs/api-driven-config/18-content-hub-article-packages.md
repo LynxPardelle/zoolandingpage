@@ -220,6 +220,8 @@ Do not promote a strict-writer change into a shared environment until a read-onl
 
 Runtime Read v1 currently hydrates the direct components, variables, i18n, and SEO fields. `structuredData` and `analytics` remain reserved public bundle metadata and are not injected as client configuration. SSR derives the supported article `BlogPosting` from the verified article projection, and page-owned analytics remains authoritative. Consuming publisher-provided custom JSON-LD or analytics instructions requires a separately versioned runtime contract and tests; bundle presence alone must not be interpreted as execution.
 
+For an article route, SSR and hydration preserve the published route's SEO title and description when its canonical identifies the current article or its shared canonical. A generic blog shell does not override the article's visible title and summary. The published article cover takes precedence over page and site social-image defaults for Open Graph, Twitter, and `BlogPosting.image`; invalid image URLs fall back safely. The cover's alternative text accompanies social images, while the visible article title remains the structured-data headline. Shared canonical/robots policies and explicit canonical suppression remain authoritative.
+
 The obsolete wrapped fixture shape was never the executable writer/reader contract and is rejected. Do not change Content Hub to emit wrappers without a separately versioned runtime migration.
 
 ## S3 Layout

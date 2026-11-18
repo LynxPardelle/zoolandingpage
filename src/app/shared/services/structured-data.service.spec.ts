@@ -55,6 +55,20 @@ describe('StructuredDataService', () => {
     });
   });
 
+  it('reuses a server-owned article script during hydration instead of duplicating it', () => {
+    const existing = doc.createElement('script');
+    existing.type = 'application/ld+json';
+    existing.setAttribute('data-zlp-structured-data-key', 'sd:bootstrap:0');
+    existing.text = JSON.stringify({ '@type': 'BlogPosting', headline: 'Article', image: 'https://example.com/cover.webp' });
+    doc.head.appendChild(existing);
+
+    service.applyEntries([{ '@type': 'BlogPosting', headline: 'Article', image: 'https://example.com/cover.webp' }]);
+
+    expect(doc.head.querySelectorAll('script[type="application/ld+json"]').length).toBe(1);
+    expect(doc.head.querySelector('script[type="application/ld+json"]')).toBe(existing);
+    expect(JSON.parse(existing.text).image).toBe('https://example.com/cover.webp');
+  });
+
   it('escapes HTML-sensitive characters in JSON-LD script text', () => {
     service.applyEntries([{
       '@context': 'https://schema.org',
