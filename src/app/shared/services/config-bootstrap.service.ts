@@ -1,4 +1,4 @@
-import { formatLocaleLabel, normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
+import { formatLocaleLabel, normalizeLocaleCode, resolveLocaleMapValue } from '@/app/shared/i18n/locale.utils';
 import type {
     TContentHubRuntimeCollection,
     TContentHubRuntimeArticleLocalization,
@@ -30,8 +30,9 @@ import {
     isVariablesPayload,
 } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
+import { resolveMetadataTemplates } from '@/app/shared/utility/metadata-template.utility';
 import { isPlatformBrowser } from '@angular/common';
-import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
+import { inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService, TConfigBootstrapStage } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
@@ -72,6 +73,7 @@ const LOOP_INDEX_TOKEN = '{{index}}';
 @Injectable({ providedIn: 'root' })
 export class ConfigBootstrapService {
     private readonly platformId = inject(PLATFORM_ID);
+    private readonly request = inject(REQUEST, { optional: true });
     private readonly store = inject(ConfigStoreService);
     private readonly source = inject(ConfigSourceService);
     private readonly resolver = inject(DomainResolverService);
@@ -379,7 +381,7 @@ export class ConfigBootstrapService {
 
         const sharedSeo = resolveSharedContentHubArticleSeo(siteConfig, opts?.routePath ?? '', lang, contentHubRuntime.currentArticle?.articleId);
         const seo = this.buildContentHubSeo(pageConfig?.seo ?? null, contentHubRuntime.currentArticle, siteConfig, opts?.routePath, lang, sharedSeo);
-        const structuredData = this.buildContentHubStructuredData(pageConfig?.structuredData ?? null, contentHubRuntime.currentArticle, siteConfig, sharedSeo?.canonical);
+        const structuredData = this.buildContentHubStructuredData(pageConfig?.structuredData ?? null, contentHubRuntime.currentArticle, siteConfig, sharedSeo?.canonical, pageConfig?.seo);
         const loadedAnalytics = pageConfig?.analytics ?? null;
         const analytics = this.buildResolvedAnalyticsConfig(
             this.store.siteConfig()?.runtime?.analytics,
@@ -626,12 +628,30 @@ export class ConfigBootstrapService {
             return {...pageSeo,title:series.title+' | The Journal',canonical:canonical.href};
         }
         if (!article) return sharedSeo ? { ...pageSeo, ...sharedSeo } : pageSeo;
-        const title = this.cleanString(article.title) || pageSeo?.title;
-        const description = this.cleanString(article.summary) || pageSeo?.description;
-        const canonical = sharedSeo?.canonical || this.resolveContentHubCanonicalUrl(article, siteConfig) || pageSeo?.canonical;
-        const strict=siteConfig?.runtime?.contentHubs?.some(isFixedJournal) && article.path.startsWith('/the-journal/');
-        const image = strict&&article.imageSrc?new URL(article.imageSrc,String(siteConfig?.site?.seo?.canonicalOrigin||'https://thehairnarrative.com')).href:this.resolveContentHubSocialImage(siteConfig, pageSeo);
-        const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? pageSeo.openGraph : {};
+        const articleCanonical = this.resolveContentHubCanonicalUrl(article, siteConfig);
+        const canonical = sharedSeo?.canonical || articleCanonical || pageSeo?.canonical;
+        const activeLanguage = language || article.locale;
+        const articlePageSeo = this.isContentHubArticlePageSeo(pageSeo, [this.cleanString(canonical), articleCanonical], siteConfig, activeLanguage);
+        const title = (articlePageSeo ? this.resolveContentHubSeoText(pageSeo?.title, activeLanguage) : '')
+            || this.cleanString(article.title) || this.resolveContentHubSeoText(siteConfig?.site?.seo?.title, activeLanguage)
+            || this.resolveContentHubSeoText(pageSeo?.title, activeLanguage);
+        const description = (articlePageSeo ? this.resolveContentHubSeoText(pageSeo?.description, activeLanguage) : '')
+            || this.cleanString(article.summary) || this.resolveContentHubSeoText(siteConfig?.site?.seo?.description, activeLanguage)
+            || this.resolveContentHubSeoText(pageSeo?.description, activeLanguage);
+        const coverImage = this.resolveContentHubImageUrl(article.imageSrc, siteConfig);
+        const image = this.resolveContentHubSocialImage(siteConfig, pageSeo, article);
+        const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? { ...pageSeo.openGraph } : {};
+        const pageTwitter = this.isRecord(pageSeo?.twitter) ? pageSeo.twitter : {};
+        const siteOpenGraph = this.isRecord(siteConfig?.site?.seo?.openGraph) ? siteConfig.site.seo.openGraph : {};
+        const imageAlt = coverImage
+            ? this.cleanString(article.imageAlt) || this.cleanString(article.title)
+            : this.cleanString(pageOpenGraph['image:alt']) || this.cleanString(pageOpenGraph['imageAlt'])
+                || this.cleanString(siteOpenGraph['image:alt']) || this.cleanString(siteOpenGraph['imageAlt']) || title;
+        if (coverImage) {
+            for (const key of ['image:secure_url', 'imageSecureUrl', 'image:type', 'imageType', 'image:width', 'imageWidth', 'image:height', 'imageHeight']) {
+                pageOpenGraph[key] = '';
+            }
+        }
 
         return {
             ...(pageSeo ?? {}),
@@ -640,13 +660,17 @@ export class ConfigBootstrapService {
             canonical,
             keywords: Array.isArray(article.tags) && article.tags.length > 0 ? article.tags : pageSeo?.keywords,
             robots: sharedSeo?.robots || this.cleanString(article.robots) || pageSeo?.robots,
-            ...(strict?{twitter:{card:'summary_large_image',title,description,image}}:{}),
+            twitter: {
+                ...pageTwitter,
+                card: 'summary_large_image', title, description,
+                image, 'image:alt': image ? imageAlt : '',
+            },
             openGraph: {
                 ...pageOpenGraph,
                 ...(title ? { title } : {}),
                 ...(description ? { description } : {}),
                 ...(canonical ? { url: canonical } : {}),
-                ...(image ? { image } : {}),
+                image, 'image:alt': image ? imageAlt : '',
                 type: 'article',
             },
         };
@@ -657,11 +681,11 @@ export class ConfigBootstrapService {
         article: TContentHubRuntimeArticleSummary | null,
         siteConfig: TDraftSiteConfigPayload | null,
         sharedCanonical?: string,
+        pageSeo?: TSeoPayload | null,
     ): TStructuredDataPayload | null {
         if (!article) return pageStructuredData;
         const canonical = sharedCanonical || this.resolveContentHubCanonicalUrl(article, siteConfig);
-        const strict=siteConfig?.runtime?.contentHubs?.some(isFixedJournal) && article.path.startsWith('/the-journal/');
-        const image = strict&&article.imageSrc?new URL(article.imageSrc,String(siteConfig?.site?.seo?.canonicalOrigin||'https://thehairnarrative.com')).href:this.resolveContentHubSocialImage(siteConfig);
+        const image = this.resolveContentHubSocialImage(siteConfig, pageSeo, article);
         const publisherName = this.cleanString(siteConfig?.site?.seo?.siteName) || this.cleanString(siteConfig?.domain);
         const title = this.cleanString(article.title);
         const description = this.cleanString(article.summary);
@@ -671,7 +695,7 @@ export class ConfigBootstrapService {
 
         return {
             entries: [
-                ...(pageStructuredData?.entries ?? []).filter(entry=>!strict||entry['@type']!=='BlogPosting'),
+                ...(pageStructuredData?.entries ?? []).filter(entry => entry['@type'] !== 'BlogPosting'),
                 {
                     '@context': 'https://schema.org',
                     '@type': 'BlogPosting',
@@ -712,12 +736,59 @@ export class ConfigBootstrapService {
     private resolveContentHubSocialImage(
         siteConfig: TDraftSiteConfigPayload | null,
         pageSeo: TSeoPayload | null = null,
+        article: TContentHubRuntimeArticleSummary | null = null,
     ): string {
         const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? pageSeo.openGraph : {};
         const siteOpenGraph = this.isRecord(siteConfig?.site?.seo?.openGraph) ? siteConfig.site.seo.openGraph : {};
-        return this.cleanString(pageOpenGraph['image'])
-            || this.cleanString(siteOpenGraph['image'])
-            || this.cleanString(siteConfig?.site?.seo?.defaultImage);
+        for (const image of [article?.imageSrc, pageOpenGraph['image'], siteOpenGraph['image'], siteConfig?.site?.seo?.defaultImage]) {
+            const resolved = this.resolveContentHubImageUrl(image, siteConfig);
+            if (resolved) return resolved;
+        }
+        return '';
+    }
+
+    private resolveContentHubImageUrl(value: unknown, siteConfig: TDraftSiteConfigPayload | null): string {
+        const image = this.cleanString(this.resolveContentHubMetadata(value));
+        if (!image) return '';
+        const origin = this.cleanString(siteConfig?.site?.seo?.canonicalOrigin)
+            || (siteConfig?.domain ? `https://${ siteConfig.domain }` : undefined);
+        try {
+            const url = new URL(image, origin);
+            return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+        } catch {
+            return '';
+        }
+    }
+
+    private isContentHubArticlePageSeo(pageSeo: TSeoPayload | null, canonicals: readonly string[], siteConfig: TDraftSiteConfigPayload | null, language: string): boolean {
+        const pageCanonical = this.resolveContentHubSeoText(pageSeo?.canonical, language);
+        if (!pageCanonical) return false;
+        const origin = this.cleanString(siteConfig?.site?.seo?.canonicalOrigin)
+            || (siteConfig?.domain ? `https://${ siteConfig.domain }` : undefined);
+        try {
+            const pageUrl = new URL(pageCanonical, origin);
+            return canonicals.filter(Boolean).some(canonical => {
+                const articleUrl = new URL(canonical, origin);
+                return pageUrl.origin === articleUrl.origin
+                    && normalizeDraftRoutePath(pageUrl.pathname) === normalizeDraftRoutePath(articleUrl.pathname);
+            });
+        } catch {
+            return false;
+        }
+    }
+
+    private resolveContentHubSeoText(value: unknown, language: string): string {
+        return this.cleanString(this.resolveContentHubMetadata(typeof value === 'string' ? value : resolveLocaleMapValue(value, language)));
+    }
+
+    private resolveContentHubMetadata(value: unknown): unknown {
+        return resolveMetadataTemplates(value, {
+            getVariable: path => this.variablesStore.get(path),
+            getQueryParam: key => {
+                const url = this.request?.url || (typeof window !== 'undefined' ? window.location.href : '');
+                try { return new URL(url, 'https://localhost').searchParams.get(key); } catch { return undefined; }
+            },
+        });
     }
 
     private cleanString(value: unknown): string {
