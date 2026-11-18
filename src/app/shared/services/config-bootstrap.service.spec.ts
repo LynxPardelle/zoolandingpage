@@ -952,6 +952,53 @@ describe('ConfigBootstrapService', () => {
         expect(store.structuredData()?.entries).toContain(jasmine.objectContaining({ image }));
     });
 
+    for (const localizedRecord of [false, true]) {
+    it(`resolves a localized social image and alt before the site fallback (${localizedRecord ? 'record' : 'field'})`, async () => {
+        const config = createContentHubSiteConfig();
+        store.setSiteConfig(config);
+        mockSuccessfulBootstrapPayloads();
+        source.loadPageConfig.and.resolveTo({ version: 1, pageId: 'blog-article', domain: config.domain, rootIds: ['blogRoot'],
+            seo: { openGraph: localizedRecord
+                ? { es: { image: '/covers/spanish.webp', 'image:alt': 'Portada en español' }, en: { image: '/covers/english.webp' } }
+                : { image: { es: '/covers/spanish.webp', en: '/covers/english.webp' }, 'image:alt': { es: 'Portada en español', en: 'English cover' } } },
+        });
+
+        await service.load({ domain: config.domain, pageId: 'blog-article', lang: 'es', routePath: '/blog/web/blog-builder-seo' });
+
+        const image = 'https://zoositioweb.com.mx/covers/spanish.webp';
+        expect(store.seo()?.openGraph?.['image']).toBe(image);
+        expect(store.seo()?.twitter?.['image']).toBe(image);
+        expect(store.seo()?.openGraph?.['image:alt']).toBe('Portada en español');
+        expect(store.seo()?.twitter?.['image:alt']).toBe('Portada en español');
+        expect(store.structuredData()?.entries).toContain(jasmine.objectContaining({ image }));
+    });
+    }
+
+    it('retains authored SEO scoped to the rendered shared-copy path', async () => {
+        const config = createContentHubSiteConfig();
+        const hub = config.runtime!.contentHubs![0];
+        const [article] = hub.publicArticles as readonly TContentHubRuntimeArticleSummary[];
+        const path = '/blog/web/shared-copy';
+        const domain = 'zooberiahsystems.com';
+        store.setSiteConfig({ ...config, domain,
+            site: { ...config.site, seo: { canonicalOrigin: `https://${ domain }` } },
+            runtime: { contentHubs: [{ ...hub, source: 'authorized', canonicalMode: 'noindex-shared',
+                publicArticles: [{ ...article, path }],
+            }] },
+        });
+        mockSuccessfulBootstrapPayloads();
+        source.loadPageConfig.and.resolveTo({ version: 1, pageId: 'blog-article', domain, rootIds: ['blogRoot'],
+            seo: { canonical: `https://${ domain }${ path }`, title: 'Authored shared-copy title', description: 'Authored shared-copy description' },
+        });
+
+        await service.load({ domain, pageId: 'blog-article', lang: 'es', routePath: path });
+
+        expect(store.seo()).toEqual(jasmine.objectContaining({ title: 'Authored shared-copy title',
+            description: 'Authored shared-copy description', robots: 'noindex,follow',
+            canonical: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+        }));
+    });
+
     it('preserves explicit canonical suppression while enriching article seo', async () => {
         store.setSiteConfig(createContentHubSiteConfig());
         mockSuccessfulBootstrapPayloads();
