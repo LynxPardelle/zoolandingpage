@@ -1926,6 +1926,32 @@ test('article SSR preserves published SEO and shares the article cover with safe
     { slug: 'cover-without-alt', imageSrc: '/covers/without-alt.webp', seo: {} },
     { slug: 'unsafe-cover', imageSrc: 'javascript:alert(1)', seo: {} },
     { slug: 'malformed-cover', imageSrc: 'http://[', seo: {} },
+    { slug: 'runtime-templates', query: '?campaign=anuncios&image=programa+restaurante',
+      seo: { title: '{{var:campaign.title|titleCase}} | {{query:campaign|upper}}',
+        description: '{{var:contentHub.currentArticle.summary}} ({{query:campaign|titleCase}})',
+        openGraph: { image: '{{var:campaign.coverDirectory}}/{{query:image|uriComponent}}.webp',
+          'image:alt': '{{var:contentHub.currentArticle.title}}' } },
+      expectedTitle: 'Landing Pages Empresas | ANUNCIOS', expectedDescription: 'Resumen visible runtime-templates. (Anuncios)',
+      expectedImage: `${origin}/covers/programa%20restaurante.webp`, expectedImageAlt: 'Título visible runtime-templates' },
+    { slug: 'runtime-image', query: '?image=programa+restaurante',
+      seo: { openGraph: { image: '{{var:campaign.coverDirectory}}/{{query:image|uriComponent}}.webp',
+        'image:alt': '{{var:contentHub.currentArticle.title}}' } },
+      expectedImage: `${origin}/covers/programa%20restaurante.webp`, expectedImageAlt: 'Título visible runtime-image' },
+    { slug: 'localized-image', seo: { openGraph: {
+      image: { es: '{{var:campaign.coverDirectory}}/local-es.webp', en: '/covers/local-en.webp' },
+      'image:alt': { es: 'Portada {{var:contentHub.currentArticle.title}}', en: 'English cover' } } },
+      expectedImage: `${origin}/covers/local-es.webp`, expectedImageAlt: 'Portada Título visible localized-image' },
+    { slug: 'localized-site-image', seo: {}, siteOpenGraph: {
+      image: { es: '{{var:campaign.coverDirectory}}/site-es.webp', en: '/covers/site-en.webp' },
+      'image:alt': { es: 'Imagen del sitio en español', en: 'English site cover' } },
+      expectedImage: `${origin}/covers/site-es.webp`, expectedImageAlt: 'Imagen del sitio en español' },
+    { slug: 'templated-canonical', canonical: `${origin}{{var:contentHub.currentArticle.path}}`,
+      seo: { title: 'SEO con canonical dinámico', description: 'Descripción con canonical dinámico.' } },
+    { slug: 'missing-templates', seo: { title: '{{var:missing.title}}', description: '{{var:missing.description}}',
+      openGraph: { image: '{{var:missing.image}}' } }, expectedArticleFallback: true },
+    { slug: 'unpublished-variables', sourceStage: 'draft',
+      seo: { title: '{{var:campaign.title}}', description: '{{var:campaign.description}}',
+        openGraph: { image: '{{var:campaign.coverDirectory}}' } }, expectedArticleFallback: true },
   ];
   const articles = cases.map(item => ({
     articleId: item.slug, path: `/blog/web/${item.slug}`, canonicalPath: item.shared ? '/blog/web/source' : `/blog/web/${item.slug}`,
@@ -1950,12 +1976,17 @@ test('article SSR preserves published SEO and shares the article cover with safe
     const item = cases.find(entry => path === `/blog/web/${entry.slug}`);
     const pageId = item ? 'blog-article' : path === '/blog' ? 'blog' : 'default';
     const identity = { version: 1, domain, pageId };
+    const routeConfig = item?.siteOpenGraph
+      ? { ...config, site: { ...config.site, seo: { ...config.site.seo, openGraph: item.siteOpenGraph } } } : config;
     const seo = item ? { ...item.seo, canonical: item.canonical || `${origin}${path}`, robots: 'index,follow' }
       : { title: 'Portada del sitio', description: 'Descripción de portada.', canonical: `${origin}${path}` };
     res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({
-      ...identity, route: { path, pageId }, sourceStage: 'published', lang: 'es', siteConfig: config,
+      ...identity, route: { path, pageId }, sourceStage: item?.sourceStage || 'published', lang: 'es', siteConfig: routeConfig,
       pageConfig: { ...identity, rootIds: [], seo }, components: { ...identity, components: [] },
-      variables: { ...identity, variables: {} }, i18n: { ...identity, lang: 'es', dictionary: {} }, metadata: { statusCode: 200 },
+      variables: { ...identity, variables: { campaign: { title: 'landing pages empresas',
+        description: 'Descripción de campaña publicada.', coverDirectory: '/covers' },
+        contentHub: { currentArticle: { title: 'Artículo de otra ruta', summary: 'Resumen de otra ruta.', path: '/blog/web/otra-ruta' } } } },
+      i18n: { ...identity, lang: 'es', dictionary: {} }, metadata: { statusCode: 200 },
     }));
   });
   const { port } = await startProductionServer(t, { CONFIG_API_URL: api, CONFIG_API_SERVER_FALLBACK_URL: '' });
@@ -1965,13 +1996,13 @@ test('article SSR preserves published SEO and shares the article cover with safe
   for (const [index, item] of cases.entries()) {
     await t.test(item.slug, async () => {
       const article = articles[index];
-      const response = await get(article.path);
+      const response = await get(article.path + (item.query || ''));
       const html = await response.text();
       assert.equal(response.status, 200, 'invalid cover metadata must not break the public page');
-      const expectedTitle = item.slug === 'shell' ? article.title : item.seo.title || article.title;
-      const expectedDescription = item.slug === 'shell' ? article.summary : item.seo.description || article.summary;
-      const expectedImage = ['authored', 'shared', 'shell', 'cover-without-alt'].includes(item.slug) ? new URL(item.imageSrc, origin).href
-        : item.slug === 'page-cover' ? `${origin}/covers/page-social.webp` : fallbackImage;
+      const expectedTitle = item.expectedTitle || (item.slug === 'shell' || item.expectedArticleFallback ? article.title : item.seo.title || article.title);
+      const expectedDescription = item.expectedDescription || (item.slug === 'shell' || item.expectedArticleFallback ? article.summary : item.seo.description || article.summary);
+      const expectedImage = item.expectedImage || (['authored', 'shared', 'shell', 'cover-without-alt'].includes(item.slug) ? new URL(item.imageSrc, origin).href
+        : item.slug === 'page-cover' ? `${origin}/covers/page-social.webp` : fallbackImage);
       assert.ok(html.includes(`<title>${expectedTitle}</title>`), 'authored article SEO wins; generic shell SEO falls back to the visible article');
       for (const attribute of ['name="description"', 'property="og:description"', 'name="twitter:description"']) {
         assert.ok(html.includes(`<meta ${attribute} content="${expectedDescription}">`), attribute);
@@ -1985,6 +2016,10 @@ test('article SSR preserves published SEO and shares the article cover with safe
       if (item.imageAlt) {
         assert.ok(html.includes(`<meta property="og:image:alt" content="${item.imageAlt}">`));
         assert.ok(html.includes(`<meta name="twitter:image:alt" content="${item.imageAlt}">`));
+      }
+      if (item.expectedImageAlt) {
+        assert.ok(html.includes(`<meta property="og:image:alt" content="${item.expectedImageAlt}">`));
+        assert.ok(html.includes(`<meta name="twitter:image:alt" content="${item.expectedImageAlt}">`));
       }
       if (item.slug === 'page-cover') {
         assert.ok(html.includes('<meta property="og:image:alt" content="Portada social editorial">'));

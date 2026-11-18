@@ -1,4 +1,4 @@
-import { formatLocaleLabel, normalizeLocaleCode, resolveLocaleMapValue } from '@/app/shared/i18n/locale.utils';
+import { formatLocaleLabel, getLocaleCandidates, normalizeLocaleCode, resolveLocaleMapValue } from '@/app/shared/i18n/locale.utils';
 import type {
     TContentHubRuntimeCollection,
     TContentHubRuntimeArticleLocalization,
@@ -631,22 +631,22 @@ export class ConfigBootstrapService {
         const articleCanonical = this.resolveContentHubCanonicalUrl(article, siteConfig);
         const canonical = sharedSeo?.canonical || articleCanonical || pageSeo?.canonical;
         const activeLanguage = language || article.locale;
-        const articlePageSeo = this.isContentHubArticlePageSeo(pageSeo, [this.cleanString(canonical), articleCanonical], siteConfig, activeLanguage);
+        const articlePageSeo = this.isContentHubArticlePageSeo(pageSeo, [this.cleanString(canonical), articleCanonical, article.path], siteConfig, activeLanguage);
         const title = (articlePageSeo ? this.resolveContentHubSeoText(pageSeo?.title, activeLanguage) : '')
             || this.cleanString(article.title) || this.resolveContentHubSeoText(siteConfig?.site?.seo?.title, activeLanguage)
             || this.resolveContentHubSeoText(pageSeo?.title, activeLanguage);
         const description = (articlePageSeo ? this.resolveContentHubSeoText(pageSeo?.description, activeLanguage) : '')
             || this.cleanString(article.summary) || this.resolveContentHubSeoText(siteConfig?.site?.seo?.description, activeLanguage)
             || this.resolveContentHubSeoText(pageSeo?.description, activeLanguage);
-        const coverImage = this.resolveContentHubImageUrl(article.imageSrc, siteConfig);
+        const coverImage = this.resolveContentHubImageUrl(article.imageSrc, siteConfig, activeLanguage);
         const image = this.resolveContentHubSocialImage(siteConfig, pageSeo, article);
-        const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? { ...pageSeo.openGraph } : {};
-        const pageTwitter = this.isRecord(pageSeo?.twitter) ? pageSeo.twitter : {};
-        const siteOpenGraph = this.isRecord(siteConfig?.site?.seo?.openGraph) ? siteConfig.site.seo.openGraph : {};
+        const pageOpenGraph = { ...this.resolveContentHubSocialRecord(pageSeo?.openGraph, activeLanguage) };
+        const pageTwitter = this.resolveContentHubSocialRecord(pageSeo?.twitter, activeLanguage);
+        const siteOpenGraph = this.resolveContentHubSocialRecord(siteConfig?.site?.seo?.openGraph, activeLanguage);
         const imageAlt = coverImage
             ? this.cleanString(article.imageAlt) || this.cleanString(article.title)
-            : this.cleanString(pageOpenGraph['image:alt']) || this.cleanString(pageOpenGraph['imageAlt'])
-                || this.cleanString(siteOpenGraph['image:alt']) || this.cleanString(siteOpenGraph['imageAlt']) || title;
+            : this.resolveContentHubSeoText(pageOpenGraph['image:alt'] || pageOpenGraph['imageAlt'], activeLanguage)
+                || this.resolveContentHubSeoText(siteOpenGraph['image:alt'] || siteOpenGraph['imageAlt'], activeLanguage) || title;
         if (coverImage) {
             for (const key of ['image:secure_url', 'imageSecureUrl', 'image:type', 'imageType', 'image:width', 'imageWidth', 'image:height', 'imageHeight']) {
                 pageOpenGraph[key] = '';
@@ -738,17 +738,18 @@ export class ConfigBootstrapService {
         pageSeo: TSeoPayload | null = null,
         article: TContentHubRuntimeArticleSummary | null = null,
     ): string {
-        const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? pageSeo.openGraph : {};
-        const siteOpenGraph = this.isRecord(siteConfig?.site?.seo?.openGraph) ? siteConfig.site.seo.openGraph : {};
+        const language = article?.locale || this.language.currentLanguage();
+        const pageOpenGraph = this.resolveContentHubSocialRecord(pageSeo?.openGraph, language);
+        const siteOpenGraph = this.resolveContentHubSocialRecord(siteConfig?.site?.seo?.openGraph, language);
         for (const image of [article?.imageSrc, pageOpenGraph['image'], siteOpenGraph['image'], siteConfig?.site?.seo?.defaultImage]) {
-            const resolved = this.resolveContentHubImageUrl(image, siteConfig);
+            const resolved = this.resolveContentHubImageUrl(image, siteConfig, article?.locale);
             if (resolved) return resolved;
         }
         return '';
     }
 
-    private resolveContentHubImageUrl(value: unknown, siteConfig: TDraftSiteConfigPayload | null): string {
-        const image = this.cleanString(this.resolveContentHubMetadata(value));
+    private resolveContentHubImageUrl(value: unknown, siteConfig: TDraftSiteConfigPayload | null, language = this.language.currentLanguage()): string {
+        const image = this.resolveContentHubSeoText(value, language);
         if (!image) return '';
         const origin = this.cleanString(siteConfig?.site?.seo?.canonicalOrigin)
             || (siteConfig?.domain ? `https://${ siteConfig.domain }` : undefined);
@@ -779,6 +780,14 @@ export class ConfigBootstrapService {
 
     private resolveContentHubSeoText(value: unknown, language: string): string {
         return this.cleanString(this.resolveContentHubMetadata(typeof value === 'string' ? value : resolveLocaleMapValue(value, language)));
+    }
+
+    private resolveContentHubSocialRecord(value: unknown, language: string): Record<string, unknown> {
+        if (!this.isRecord(value)) return {};
+        for (const candidate of [...getLocaleCandidates(language), 'default', 'es', 'en']) {
+            if (this.isRecord(value[candidate])) return value[candidate];
+        }
+        return value;
     }
 
     private resolveContentHubMetadata(value: unknown): unknown {
