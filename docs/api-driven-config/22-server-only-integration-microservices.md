@@ -2,7 +2,7 @@
 
 Date: 2026-07-20 (Central Time)
 Scope: Draft-scoped server-only descriptors and the approved service boundaries that consume them.
-Status: Phase 1 contract/authoring boundary is active; Data Spaces is implemented locally only; no Data Spaces AWS stack or live provider path is deployed by this document.
+Status: Phase 1 contract/authoring boundary is active; all four owning services are implemented and verified locally, their private repositories contain published baseline branches, and their identity-only test/production stacks and GitHub Environment wiring are verified. No application stack or live provider path is deployed by this document.
 Source Of Truth:
 
 - [Approved implementation plan](../../plan/infrastructure-server-only-integrations-1.md)
@@ -14,8 +14,8 @@ Source Of Truth:
 - [`draft-feature-readiness.mjs`](../../tools/draft-feature-readiness.mjs)
 - [Repository map](../repository-map.md)
 
-Confidence: High for the Phase 1 descriptor/readiness/authoring contract, local Data Spaces implementation, and local Commerce TASK-025 through TASK-029 foundation; planned for live service infrastructure and provider behavior.
-Last Reviewed: 2026-07-20 (Central Time)
+Confidence: High for the Phase 1 descriptor/readiness/authoring contract, locally verified service implementations, and repository-scoped deployment identity trust/wiring; planned and gated for published application releases, live service infrastructure, operational alert delivery, and provider behavior.
+Last Reviewed: 2026-08-17 (Central Time)
 
 ## Contract Status
 
@@ -28,9 +28,13 @@ This document separates what exists in the current Zoolandingpage worktree from 
 | Pre-S3 enforcement in Config Authoring | Active in test and production from an explicit allowlisted SAM artifact; invalid packages and stored-package publication failures are fail-closed |
 | Browser/SSR draft artifact boundary | Sanitized boundary-fix releases are active and private-path probes return `404`; incident closure remains gated by historical access limitations and final browser/risk acceptance evidence |
 | Runtime Read public/server boundary and deployment identities | Active in test and production with exact GitHub OIDC callers, retained CloudFormation service roles, code-owned execution boundaries, unchanged Lambda/API physical IDs, bounded public/S3 work, verified denial of server-only descriptor reads, and exact `GET /runtime-bundle` throttle 25/burst 50 |
-| Data Spaces service | Implemented and verified in the local `Z:\GitHub\zoolanding-data-spaces` repository; no remote or AWS resource exists yet |
-| Commerce service | TASK-025 through TASK-034 are implemented and verified locally in `Z:\GitHub\zoolanding-commerce`: policy resolution, retained storage, provider-neutral domain rules, eight literal browser routes, authorization, catalog/inventory/Checkout, integration-event inbox and notification outbox, subscription projection, reconciliation, and isolated manual fiscal intake; no remote or AWS deployment exists yet |
-| Integrations and Notifications services | Approved target for later phases; not implemented or deployed by this contract |
+| Data Spaces service | Implemented and verified locally; its private GitHub repository contains published baseline `main`/`test`/`dev` branches, but its application release, stack, and dependencies are not deployed and deployment remains NO-GO |
+| Commerce service | Implemented and verified locally; its private GitHub repository contains published baseline `main`/`test`/`dev` branches, but its application release, stack, and dependencies are not deployed and deployment remains NO-GO |
+| Integrations service | Implemented and verified locally; its private GitHub repository contains published baseline `main`/`test`/`dev` branches, but its application release, stack, required dependencies, and provider configuration are not deployed and deployment remains NO-GO |
+| Notifications service | Implemented and verified locally; its private GitHub repository contains published baseline `main`/`test`/`dev` branches, but its application release, stack, required dependencies, and transport configuration are not deployed and deployment remains NO-GO |
+| Service deployment identities | Independent test and production identity stacks for all four services are `CREATE_COMPLETE`; 16 total roles and exact repository/Environment/branch trust are verified. Both GitHub Environments have `AWS_ROLE_ARN` and `AWS_CLOUDFORMATION_ROLE_ARN` configured; this identity-only wiring does not authorize an application deployment |
+| Application dependencies and provider values | No application stack or canonical SSM dependency exists. Integrations and Notifications still lack required operator/provider values and provider/transport activation; deployment remains NO-GO |
+| Operator alarm delivery | Both GitHub Environments have `ALARM_TOPIC_ARN` configured, but the target topic has zero confirmed subscribers. Configuration alone provides no confirmed alert delivery and does not satisfy the deployment gate |
 | Stripe Connect, Checkout, Billing, and webhook handling | Stripe-specific adapter target; live setup is gated |
 | SMTP2GO outbound delivery | The standalone test account and `zoolandingpage.com.mx` sender domain are verified, and two sandboxed pilot-specific SMTP users exist. Credential rotation into canonical Secrets Manager bindings, final recipient policy, quota/cost approval, and acceptance/delivery evidence remain gated |
 
@@ -100,7 +104,7 @@ Phase 1 accepts only the code-owned capabilities `data-space:record:read`, `data
 
 The MVP isolates each new Data Space by `environment + tenantId + draftId`. Existing Content Hub blogs continue unchanged. Cross-draft Data Space sharing is not inferred from matching IDs or domains and requires a separately approved owner/share-binding contract.
 
-The completed local Phase 2 service uses one PAY_PER_REQUEST/SSE/PITR table with server-derived keys, conditional transactions, immutable schema/record revisions, and TTL only on 90-day idempotency receipts. Protected reads/actions reuse fresh Auth Admin state and the exact code-owned capabilities above; mutations also require CSRF. Public reads use only explicit published projections and have an exact API Gateway method throttle in the undeployed template. Once records exist, schema evolution preserves every existing field definition so an already-public value cannot survive a later `public -> internal` reclassification. The AWS_IAM snapshot path additionally requires the exact configured trusted Commerce role, an exact revision and field allowlist, and returns a canonical SHA-256 content hash. This is implementation evidence, not deployment evidence: no Data Spaces AWS resource, public route, remote repository, or production data exists yet. Free-text PII/secret detection is defense-in-depth rather than proof; Data Spaces remains operationally prohibited for customer PII or sensitive submissions.
+The completed local Phase 2 service uses one PAY_PER_REQUEST/SSE/PITR table with server-derived keys, conditional transactions, immutable schema/record revisions, and TTL only on 90-day idempotency receipts. Protected reads/actions reuse fresh Auth Admin state and the exact code-owned capabilities above; mutations also require CSRF. Public reads use only explicit published projections and have an exact API Gateway method throttle in the undeployed template. Once records exist, schema evolution preserves every existing field definition so an already-public value cannot survive a later `public -> internal` reclassification. The AWS_IAM snapshot path additionally requires the exact configured trusted Commerce role, an exact revision and field allowlist, and returns a canonical SHA-256 content hash. This is implementation evidence, not deployment evidence: the private repository exists, but no Data Spaces application resource, public route, or production data exists yet. Free-text PII/secret detection is defense-in-depth rather than proof; Data Spaces remains operationally prohibited for customer PII or sensitive submissions.
 
 ### Commerce
 
@@ -353,7 +357,7 @@ The following remain blocking and must not be inferred from placeholder or test 
 2. Accountant/legal approval for fiscal fields, retention, access, request window, and the manual CFDI operating procedure. Until then, production fiscal capture is disabled.
 3. Confirmed Stripe account topology for each merchant binding, current official SDK/API compatibility, live tax responsibility/registration proof, webhook endpoint setup, and explicit test evidence. Platform commission remains disabled; optional application fees are future work.
 4. SMTP2GO test-account plan/limit verification, `zoolandingpage.com.mx` sender authentication, test recipient restrictions, and acceptance/delivery evidence; plus a separately verified standalone SMTP2GO account, unique credential, canonical sender domain, quota, and DNS authentication for every production draft. Until those checks pass, no real production SMTP secret or delivery is enabled.
-5. Implemented and audited owning-service repositories, least-privilege IAM, exact infrastructure routes, alarms, smoke evidence, and explicit deployment authorization.
+5. Published and audited owning-service release branches, least-privilege application IAM, exact infrastructure routes, application stacks and canonical SSM dependencies, required Integrations/Notifications operator and provider values, at least one confirmed intended alarm subscriber, provider/transport configuration, alarm and smoke evidence, and explicit deployment authorization.
 6. Clean pilot draft preflight plus validated test configuration. No payment result automates draft publication or suspension.
 
 ## Explicit MVP Limits
