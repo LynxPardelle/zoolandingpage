@@ -69,7 +69,7 @@ export function applyNavigationScroll(scrollRestoration?: TDraftNavigationScroll
 
 export function navigateInCurrentWindow(
     href: string,
-    options: { readonly scrollRestoration?: TDraftNavigationScrollRestorationConfig } = {},
+    options: { readonly scrollRestoration?: TDraftNavigationScrollRestorationConfig; readonly replace?: boolean } = {},
 ): void {
     if (typeof window === 'undefined' || !window.location) {
         return;
@@ -98,7 +98,8 @@ export function navigateInCurrentWindow(
     }
 
     dispatchClientNavigationStart();
-    window.history.pushState({}, '', nextPath);
+    if (options.replace) window.history.replaceState({}, '', nextPath);
+    else window.history.pushState({}, '', nextPath);
     if (nextUrl.hash) {
         scrollHashIntoView(nextUrl.hash);
     } else {

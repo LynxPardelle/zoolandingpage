@@ -374,6 +374,57 @@ async function startNotFoundRecoveryFixture(t) {
   return { ...server, domain, siteConfig };
 }
 
+test('production SSR emits opt-in permanent route redirects with safe preview context', async (t) => {
+  const domain = 'route-migration.example.test';
+  const siteConfig = {
+    version: 1, domain, defaultPageId: 'default', notFoundPageId: 'not-found',
+    routes: [{ path: '/', pageId: 'default' }, { path: '/sitios-web', pageId: 'default' }, { path: '/404', pageId: 'not-found' }],
+    site: {
+      appIdentity: { identifier: 'redirect-fixture', name: 'Route migration fixture' },
+      theme: JSON.parse(readFileSync(join(repoRoot, 'tools/tests/fixtures/pamela-site-config.json'), 'utf8')).site.theme,
+      i18n: { defaultLanguage: 'es', supportedLanguages: ['es'] },
+      seo: { canonicalOrigin: `https://${domain}`, redirects: [{ from: '/landingpages', to: '/sitios-web', preserveQueryParams: ['q', 'categoria', 'lang'] }] },
+    },
+  };
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url, 'http://127.0.0.1');
+    res.writeHead(200, { 'content-type': 'application/json' });
+    if (url.pathname === '/site-config') { res.end(JSON.stringify(siteConfig)); return; }
+    const path = url.searchParams.get('path') || '/';
+    const notFound = !['/', '/sitios-web'].includes(path), pageId = notFound ? 'not-found' : 'default';
+    const identity = { version: 1, domain, pageId };
+    res.end(JSON.stringify({ ...identity, siteConfig, lang: 'es', sourceStage: 'published',
+      route: { path, pageId }, pageConfig: { ...identity, rootIds: ['title'] },
+      components: { ...identity, components: [{ id: 'title', type: 'text', config: { tag: 'h1', text: 'Route migration fixture' } }] },
+      variables: { ...identity, variables: {} }, i18n: { ...identity, lang: 'es', dictionary: {} },
+      metadata: { statusCode: notFound ? 404 : 200, notFound },
+    }));
+  });
+  const { port } = await startProductionServer(t, { CONFIG_API_URL: apiBase, CONFIG_API_SERVER_FALLBACK_URL: '', ZLP_RUNTIME_ENV: 'test' });
+  const cases = [
+    [domain, '/landingpages', '/sitios-web'],
+    [domain, '/landingpages/?q=guitarra&categoria=cursos&discard=1', '/sitios-web?q=guitarra&categoria=cursos'],
+    [domain, `/landingpages?draftDomain=${domain}&debugWorkspace=false&draftPageId=old&lang=es`, '/sitios-web?lang=es'],
+    ['test.zoolandingpage.com.mx', `/landingpages?draftDomain=${domain}&debugWorkspace=false&draftPageId=old&q=guitarra`, `/sitios-web?q=guitarra&draftDomain=${domain}&debugWorkspace=false`],
+  ];
+  for (const [host, path, expected] of cases) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+        method, redirect: 'manual', headers: { Host: host, 'X-Forwarded-Host': host, 'X-Forwarded-Proto': 'https' },
+      });
+      assert.equal(response.status, 301, `${method} ${host}${path}`);
+      assert.equal(response.headers.get('location'), expected);
+    }
+  }
+  for (const path of ['/landingpages-extra', '/other/landingpages']) {
+    const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+      redirect: 'manual', headers: { Host: domain, 'X-Forwarded-Host': domain, 'X-Forwarded-Proto': 'https' },
+    });
+    assert.equal(response.status, 404);
+    assert.equal(response.headers.get('location'), null);
+  }
+});
+
 test('production SSR not-found recovery retains validated preview context and reaches home', async (t) => {
   const { port, domain, getStderr } = await startNotFoundRecoveryFixture(t);
   for (const host of ['127.0.0.1', 'test.zoolandingpage.com.mx']) {

@@ -11,7 +11,7 @@ Source Of Truth:
 - Promoted from local draft findings
 
 Confidence: High
-Last Reviewed: 2026-04-30 (Central Time)
+Last Reviewed: 2026-11-18 (Central Time)
 
 ## Minimum Gates
 
@@ -24,7 +24,7 @@ Before calling a landing production-ready, confirm:
 5. build status and warning triage
 6. deterministic test status
 7. manual desktop and mobile QA
-8. analytics and consent verification
+8. explicit analytics enablement for production, appropriate consent configuration, and effective published event-capture evidence, following the [production analytics default](../../docs/11-draft-lifecycle.md#production-analytics-default); record any user-requested disabled exception
 9. localization review where applicable
 10. release verdict recorded in a readiness note
 
