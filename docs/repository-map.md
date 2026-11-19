@@ -5,7 +5,7 @@
 
 This is the fleet router, not a release dashboard. Default branches can change and do not imply a shared promotion path. Before editing a sibling, fetch its current metadata and read its own entrypoint, branch rules, tests, deployment, and rollback guidance.
 
-Every mapped or newly discovered project resource is subject to the [shared administrative access requirement](./administrative-access.md). Verify both required operators' active permissions; repository ownership, a successful bootstrap, or a pending invitation alone does not prove compliance.
+Every mapped or newly discovered project repository is subject to the [shared GitHub write-access requirement](./repository-write-access.md). Verify active write access for both required accounts; public visibility, a successful bootstrap, or a pending invitation alone does not prove compliance.
 
 ## Application And Platform Repositories
 

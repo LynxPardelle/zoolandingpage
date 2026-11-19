@@ -52,7 +52,7 @@ node tools/draft-repo-preflight.mjs --pull=true
 
 New draft repos should be bootstrapped from the hub templates:
 
-Before creating the remote repository, follow the [shared administrative access requirement](./administrative-access.md). Both required GitHub accounts must have active administrative access through the verified project organization. Existing personal repositories remain an explicit ownership limitation; bootstrap and setup helpers do not verify this requirement automatically.
+Before creating the remote repository, follow the [shared GitHub write-access requirement](./repository-write-access.md). Both `LynxPardelle` and `Toydrum` must have active write access; the personal owner grants the other account collaborator access. Bootstrap and setup helpers do not verify this requirement automatically.
 
 ```bash
 npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring
