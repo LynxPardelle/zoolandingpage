@@ -193,6 +193,18 @@ describe('DraftRuntimeService', () => {
     };
   };
 
+  it('resolves a public migration before a stale explicit page ID or not-found fallback', async () => {
+    const { service } = configure('https://test.zoolandingpage.com.mx/landingpages?q=guitarra&draftDomain=example.test&debugWorkspace=false&draftPageId=old', {
+      version: 1, domain: 'example.test', routes: [{ path: '/sitios-web', pageId: 'web' }],
+      site: { seo: { redirects: [{ from: '/landingpages', to: '/sitios-web', preserveQueryParams: ['q'] }] } },
+    });
+    const context = await service.resolveActiveDraftContext();
+    expect(context.publicRedirect).toBe('/sitios-web?q=guitarra&draftDomain=example.test&debugWorkspace=false');
+    expect(context.pageId).toBe('web');
+    expect(context.explicitPageId).toBeFalse();
+    expect(context.notFound).not.toBeTrue();
+  });
+
   afterEach(() => {
     (environment as { production: boolean; development: boolean }).production = originalProduction;
     (environment as { production: boolean; development: boolean }).development = originalDevelopment;

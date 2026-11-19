@@ -114,6 +114,12 @@ export type TDraftUiVariableConfig = {
     readonly languageOptions?: readonly Record<string, unknown>[];
 };
 
+export type TPublicRouteRedirect = {
+    readonly from: string;
+    readonly to: string;
+    readonly preserveQueryParams?: readonly string[];
+};
+
 export type TDraftSiteSeoConfig = {
     readonly siteName?: string;
     readonly title?: string;
@@ -121,6 +127,7 @@ export type TDraftSiteSeoConfig = {
     readonly canonicalOrigin?: string;
     readonly enforceCanonicalHost?: boolean;
     readonly forceHttps?: boolean;
+    readonly redirects?: readonly TPublicRouteRedirect[];
     readonly defaultImage?: string;
     readonly openGraph?: Record<string, unknown>;
     readonly twitter?: Record<string, unknown>;

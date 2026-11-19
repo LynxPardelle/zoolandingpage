@@ -3,6 +3,26 @@
   "title": "SiteConfigPayload",
   "type": "object",
   "definitions": {
+    "publicRedirectPath": {
+      "type": "string",
+      "maxLength": 256,
+      "pattern": "^(?!.*(?:^|/)\\.{1,2}(?:/|$))/(?:[A-Za-z0-9._~-]+(?:/[A-Za-z0-9._~-]+)*/?)?$"
+    },
+    "publicRouteRedirect": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "$ref": "#/definitions/publicRedirectPath" },
+        "to": { "$ref": "#/definitions/publicRedirectPath" },
+        "preserveQueryParams": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^(?!draftDomain$|draftPageId$|debugWorkspace$)[A-Za-z][A-Za-z0-9_-]{0,31}$" }
+        }
+      },
+      "additionalProperties": false
+    },
     "siteRouteEntry": {
       "type": "object",
       "required": ["path", "pageId"],
@@ -959,6 +979,7 @@
         "canonicalOrigin": { "type": "string" },
         "enforceCanonicalHost": { "type": "boolean" },
         "forceHttps": { "type": "boolean" },
+        "redirects": { "type": "array", "maxItems": 32, "items": { "$ref": "#/definitions/publicRouteRedirect" } },
         "defaultImage": { "type": "string" },
         "openGraph": {
           "type": "object",
