@@ -159,6 +159,32 @@ Centralization enables:
 
 This keeps emitters stable while letting draft or API payloads define the external taxonomy expected by a backend or reporting pipeline.
 
+### 12. URL query tags
+
+`AnalyticsService.track()` automatically adds `queryParams` to every buffered and outgoing raw analytics event. It is an array of `{ key: string, value: string }`, independent of the event's `label`, `meta`, and content tags. No per-draft list of campaign keys is required.
+
+For a visit to `/?source=newsletter&campaign=autumn&tag=offer&tag=returning`, each event captured on that URL includes:
+
+```json
+{
+  "queryParams": [
+    { "key": "source", "value": "newsletter" },
+    { "key": "campaign", "value": "autumn" },
+    { "key": "tag", "value": "offer" },
+    { "key": "tag", "value": "returning" }
+  ]
+}
+```
+
+- Names are generic: `source`, `campaign`, `utm_source`, or another non-sensitive query key can be used as an analytics dimension without changing an emitter.
+- The array preserves URL order, repeated keys, empty values, and decoded characters. Hash fragments are not query parameters.
+- The service captures a snapshot before asynchronous forwarding or consent queuing. Each later event reads its current URL; earlier queued events retain their original queries. It does not persist attribution across routes that remove the parameters.
+- An event without query parameters, or without a browser window during SSR, has `queryParams: []`. Consumers must also tolerate older events without the field.
+- Known credential, authentication, and personal-data parameter names are excluded, as are names or values containing recognizable email addresses, phone numbers, bearer credentials, or signed-URL markers. Nested URL query parameters are checked too; malformed URL values with query delimiters and URL values exceeding 16 levels of query inspection are omitted. Ordinary long campaign values are preserved, and email detection avoids repeated scans of the same local part. Keep all campaign URLs free of private data; filtering does not classify every possible sensitive value. Long numeric values can match the existing ingestion phone-number protection and be omitted.
+- Existing analytics configuration and consent gates still control remote sends. The raw ingestion service stores this array unchanged; reporting can expand the entries into key/value dimensions. Quick Stats keeps its existing counters, and Google Tag keeps its separate configured attribution behavior.
+
+See [Data Dropper integration](./08-data-dropper-lambda.md) for raw storage and ETL guidance.
+
 ---
 
 This architecture reduces coupling, simplifies tests, and prepares the codebase for multi-sink analytics and richer context enrichment.

@@ -25,6 +25,8 @@ The function expects a JSON body (string) with at least:
 
 You can include any other fields. The function uploads the ORIGINAL body unchanged.
 
+The Angular `AnalyticsService` adds `queryParams: [{ "key": "source", "value": "newsletter" }]` to each new event. This field contains the current URL's non-sensitive query parameters, including repeated keys and empty values; it is `[]` when no parameters remain. It is captured when the event occurs, including for events awaiting consent. See [URL query tags](./08-analytics-centralization.md#12-url-query-tags) for capture and privacy rules. The receiver requires no schema change for this array, and older payloads may omit it.
+
 Example minimal payload:
 
 ```json
@@ -200,6 +202,7 @@ The Lambda is the raw ingestion layer, not the analytics transformation layer. F
 - group events by `sessionId` when available
 - choose a session timezone from the first valid IANA `timezone` in that session
 - derive local date/hour during ETL for events missing their own `timezone`
+- expand optional `queryParams` entries into key/value dimensions for source, campaign, or custom tags, preserving repeated keys and treating missing or empty arrays as no query tags
 - preserve `source_key` and raw payload references for replay and debugging
 
 The backend repo contains the detailed ETL handoff document at `zoolanding-data-dropper-lambda/docs/etl-starting-point.md`.

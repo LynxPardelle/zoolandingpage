@@ -11,7 +11,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { Observable, ReplaySubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/generic-toast';
-import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics } from '../types/analytics.type';
+import { TAnalyticsEvent, TAnalyticsQueryParam, TDataDropResponse, TExpandedAnalytics } from '../types/analytics.type';
 import { findPublishedContentHubArticleForPath, matchContentHubArticleRoute } from '../utility/content-hub/content-hub-public-route';
 import { normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
@@ -23,6 +23,10 @@ import { QuickStatsService } from './quick-stats.service';
 
 const DEFAULT_SCROLL_MILESTONES: readonly number[] = [25, 50, 75, 100];
 const AUTOMATED_AUDIT_USER_AGENT_PATTERN = /(chrome-lighthouse|lighthouse|pagespeed)/i;
+const SENSITIVE_QUERY_KEY_PATTERN = /(token|password|passwd|secret|authorization|credential|signature|apikey|accesskey|subscriptionkey|email|phone|telefono|teléfono|address|direcci[oó]n|rfc|curp)|^(key|sig|code|state|auth|mail|name|nombre|fullname|firstname|lastname|message|body|commentbody)$/i;
+// Match the raw ingestion service's private-value checks, including blog events.
+// Detection needs only the final local-part character before @, avoiding quadratic retries on long tags.
+const PRIVATE_QUERY_VALUE_PATTERN = /[\p{L}\p{N}_.+-]@[\p{L}\p{N}_.-]+\.[A-Za-z]{2,}|\+?\p{Nd}[\p{Nd}\s\u001c-\u001f().-]{7,}\p{Nd}|bearer\s+[a-z0-9._~+/=-]+|x-amz-signature|x-amz-credential|-----BEGIN |(?:AKIA|ASIA)[0-9A-Z]{16}/iu;
 
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
@@ -559,13 +563,13 @@ export class AnalyticsService {
     }
   }
 
-  async track(name: string, data: Omit<TAnalyticsEvent, 'name' | 'timestamp'> = {}): Promise<void> {
+  async track(name: string, data: Omit<TAnalyticsEvent, 'name' | 'timestamp' | 'queryParams'> = {}): Promise<void> {
     /*     console.log(`Tracking event: ${ name }`, data);
      */    // Drop event when suppressed (time-bound and name-bound)
     if (Date.now() <= this.suppressUntil && this.suppressedEvents.has(name)) {
       return;
     }
-    const evt: TAnalyticsEvent = { name, timestamp: Date.now(), ...data } as TAnalyticsEvent;
+    const evt: TAnalyticsEvent = { name, timestamp: Date.now(), ...data, queryParams: this.captureQueryParams() };
     // Always keep local buffer (for potential flush/report)
     /* console.log('[analytics]', evt); */
     this.buffer.push(evt);
@@ -602,6 +606,38 @@ export class AnalyticsService {
     // Fire-and-forget counters to Quick Stats for selected events
     this.bumpQuickStatsForEvent(name);
   }
+
+  private captureQueryParams(): readonly TAnalyticsQueryParam[] {
+    const search = this.doc.defaultView?.location?.search ?? '';
+    const queryParams: TAnalyticsQueryParam[] = [];
+    new URLSearchParams(search).forEach((value, key) => {
+      if (!this.isPrivateQueryParam(key, value)) {
+        queryParams.push({ key, value });
+      }
+    });
+    return queryParams;
+  }
+
+  private isPrivateQueryParam(key: string, value: string, depth = 0): boolean {
+    const normalizedKey = key.replace(/[^a-z0-9áéíóúñ]/gi, '');
+    if (SENSITIVE_QUERY_KEY_PATTERN.test(normalizedKey)
+      || PRIVATE_QUERY_VALUE_PATTERN.test(key)
+      || PRIVATE_QUERY_VALUE_PATTERN.test(value)) {
+      return true;
+    }
+    if (!value.includes('?')) return false;
+    // Omit overdeep URL-valued tags before repeated parsing can block event capture.
+    if (depth >= 16) return true;
+
+    // URL-valued tags can themselves contain encoded credentials or signed URLs.
+    try {
+      const nestedParams = new URL(value, 'https://analytics.invalid').searchParams;
+      return Array.from(nestedParams).some(([nestedKey, nestedValue]) => this.isPrivateQueryParam(nestedKey, nestedValue, depth + 1));
+    } catch {
+      return true;
+    }
+  }
+
   flush(): readonly TAnalyticsEvent[] {
     return [...this.buffer];
   }
