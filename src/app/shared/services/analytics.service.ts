@@ -25,7 +25,7 @@ const DEFAULT_SCROLL_MILESTONES: readonly number[] = [25, 50, 75, 100];
 const AUTOMATED_AUDIT_USER_AGENT_PATTERN = /(chrome-lighthouse|lighthouse|pagespeed)/i;
 const SENSITIVE_QUERY_KEY_PATTERN = /(token|password|passwd|secret|authorization|credential|signature|apikey|accesskey|subscriptionkey|email|phone|telefono|teléfono|address|direcci[oó]n|rfc|curp)|^(key|sig|code|state|auth|mail|name|nombre|fullname|firstname|lastname|message|body|commentbody)$/i;
 // Match the raw ingestion service's private-value checks, including blog events.
-const PRIVATE_QUERY_VALUE_PATTERN = /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|\+?\d[\d\s().-]{7,}\d|bearer\s+[a-z0-9._~+/=-]+|x-amz-signature|x-amz-credential|-----BEGIN |(?:AKIA|ASIA)[0-9A-Z]{16}/i;
+const PRIVATE_QUERY_VALUE_PATTERN = /[\p{L}\p{N}_.+-]+@[\p{L}\p{N}_.-]+\.[A-Za-z]{2,}|\+?\p{Nd}[\p{Nd}\s\u001c-\u001f().-]{7,}\p{Nd}|bearer\s+[a-z0-9._~+/=-]+|x-amz-signature|x-amz-credential|-----BEGIN |(?:AKIA|ASIA)[0-9A-Z]{16}/iu;
 
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {

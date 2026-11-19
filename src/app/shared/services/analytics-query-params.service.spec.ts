@@ -119,6 +119,22 @@ describe('AnalyticsService URL query context', () => {
     }));
   });
 
+  it('excludes Unicode email addresses and decimal phone digits recognized by the backend privacy checks', async () => {
+    const params = new URLSearchParams({
+      source: 'campaña',
+      unicodeLocal: 'é@example.invalid',
+      unicodeDomain: 'café@exämple.invalid',
+      unicodeDigits: '١٢٣٤٥٦٧٨٩',
+    });
+    setUrl(`/?${ params }`);
+
+    await service.track('test_event');
+
+    expect(service.flush()[0]).toEqual(jasmine.objectContaining({
+      queryParams: [{ key: 'source', value: 'campaña' }],
+    }));
+  });
+
   const enableRemoteTransport = (): void => {
     enabled = true;
     spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
