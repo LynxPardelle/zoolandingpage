@@ -82,6 +82,25 @@ const minimalSiteConfig = () => ({
 });
 
 describe('config-payload.validators', () => {
+    it('rejects unsafe, chained, duplicate and unregistered opt-in public route redirects', () => {
+        const config = (redirects: unknown) => ({
+            version: 1, domain: TEST_DOMAIN, defaultPageId: 'home',
+            routes: [{ path: '/', pageId: 'home' }, { path: '/sitios-web', pageId: 'web' }],
+            site: { ...minimalSiteConfig(), seo: { redirects } },
+        });
+        expect(isDraftSiteConfigPayload(config([{ from: '/landingpages', to: '/sitios-web', preserveQueryParams: ['q', 'categoria', 'lang'] }]))).toBeTrue();
+        for (const invalid of [
+            [{ from: '/old', to: 'https://outside.example/' }],
+            [{ from: '/old', to: '//outside.example' }],
+            [{ from: '/old', to: '/old/' }],
+            [{ from: '/old', to: '/missing' }],
+            [{ from: '/old', to: '/sitios-web', statusCode: 302 }],
+            [{ from: '/old', to: '/sitios-web', preserveQueryParams: ['draftPageId'] }],
+            [{ from: '/old', to: '/sitios-web', preserveQueryParams: ['q', 'q'] }],
+            [{ from: '/old', to: '/sitios-web' }, { from: '/old/', to: '/sitios-web' }],
+            [{ from: '/old', to: '/other' }, { from: '/other', to: '/sitios-web' }],
+        ]) expect(isDraftSiteConfigPayload(config(invalid))).withContext(JSON.stringify(invalid)).toBeFalse();
+    });
     it('validates optional container language without changing the existing focus and semantic contracts', () => {
         const payload = (config: Record<string, unknown>) => createComponentsPayload({
             main: { id: 'main', type: 'container', config: { tag: 'main', components: [], ...config } },

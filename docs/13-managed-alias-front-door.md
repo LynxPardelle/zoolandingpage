@@ -1,5 +1,27 @@
 # Managed Alias Front Door
 
+## Public route migrations
+
+For an exact path migration inside a draft, declare `site.seo.redirects` in `site-config.json`:
+
+```json
+{
+  "site": {
+    "seo": {
+      "redirects": [
+        { "from": "/old-catalog", "to": "/sites", "preserveQueryParams": ["q", "category", "lang"] }
+      ]
+    }
+  }
+}
+```
+
+The destination must be a registered static route in the same draft. Rules are optional and emit HTTP 301 for GET/HEAD; client navigation replaces the old URL rather than adding another history entry. Exact source paths accept one trailing slash. Remove the old URL from the sitemap and update the destination canonical and internal links as part of the migration.
+
+The closed rule table permits at most 32 entries, with ASCII static paths of at most 256 characters and eight unique query-parameter names per rule. External destinations, encoded paths, traversal, duplicate sources, redirect chains and loops are invalid. Only explicitly configured query parameters are copied; repeated values are dropped. Preview identity is separate: verified local/shared-preview `draftDomain` and a valid `debugWorkspace` boolean are retained automatically, but `draftPageId` is never forwarded. Published hosts do not retain preview identity.
+
+These rules require the compatible shared SSR/browser release before a draft enables them. They do not create DNS aliases, alter auth redirects, or enable other drafts by default.
+
 Date: 2026-05-18 (Central Time)
 Status: Active
 Scope: DNS, Traefik/Dokploy file-provider routing, and runtime API reset probes for managed `*.zoolandingpage.com.mx` aliases.

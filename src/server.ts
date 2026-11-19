@@ -19,6 +19,7 @@ import {
   matchContentHubArticleRoute,
 } from '@/app/shared/utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
+import { resolvePublicRouteRedirect } from '@/app/shared/utility/route-matching/public-route-redirect';
 import { resolveNavigationTarget } from '@/app/shared/utility/navigation/navigation-target.utility';
 import { resolveMetadataTemplates, type TMetadataTemplateContext } from '@/app/shared/utility/metadata-template.utility';
 import { classifyProtectedOriginRequest, isProtectedOriginBinding, projectProtectedAssetAttributes, readPackagedProtectedOrigin, resolveProtectedRuntimeEnvironment, type ProtectedOriginBinding, type ProtectedOriginContext } from '@/app/shared/utility/auth/protected-admin-origin.utility';
@@ -200,6 +201,7 @@ type TSiteSeoConfig = {
   readonly canonicalOrigin?: string;
   readonly enforceCanonicalHost?: boolean;
   readonly forceHttps?: boolean;
+  readonly redirects?: readonly unknown[];
   readonly defaultImage?: string;
   readonly openGraph?: Record<string, unknown>;
   readonly twitter?: Record<string, unknown>;
@@ -4040,7 +4042,10 @@ app.use((req, res, next) => {
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
   loadSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host))
     .then((siteConfig) => {
-      const redirectUrl = buildFrontDoorRedirectUrl(req, host, siteConfig);
+      const redirectUrl = buildFrontDoorRedirectUrl(req, host, siteConfig)
+        || (['GET', 'HEAD'].includes(req.method) ? resolvePublicRouteRedirect(siteConfig, req.originalUrl, {
+          allowDraftPreview: isSharedTestingDraftPreviewRequest(req, host) || isLocalHost(host),
+        }) : null);
       if (!redirectUrl) {
         next();
         return;

@@ -1221,6 +1221,27 @@ describe('RuntimeService', () => {
         });
     });
 
+    it('replaces a legacy public URL and bootstraps only its destination when the shell connects', async () => {
+        const service = TestBed.inject(RuntimeService);
+        setRuntimeUrl('/landingpages?draftDomain=pamelabetancourt.com');
+        const replace = spyOn(window.history, 'replaceState').and.callThrough();
+        draftRuntimeResolveActiveDraftContext.and.callFake(async () => window.location.pathname === '/landingpages'
+            ? { domain: 'pamelabetancourt.com', pageId: 'web', path: '/landingpages', route: null,
+                explicitPageId: false, publicRedirect: '/servicios?draftDomain=pamelabetancourt.com' }
+            : resolveRuntimeContext());
+        await service.initialize('es');
+        expect(bootstrapLoad).not.toHaveBeenCalled();
+        service.connect({
+            host: document.createElement('main'),
+            destroyRef: { destroyed: false, onDestroy: () => () => undefined } as any,
+            showDebugWorkspace: () => false, currentLanguage: () => 'es',
+        });
+        for (let attempt = 0; attempt < 8 && service.rootComponentsIds().length === 0; attempt++) await flushPostBootstrapBrowserWork();
+        expect(window.location.pathname).toBe('/servicios');
+        expect(replace).toHaveBeenCalled();
+        expect(bootstrapLoad.calls.allArgs().every(([request]) => request.routePath === '/servicios')).toBeTrue();
+    });
+
     it('renders the login route after an unauthenticated protected-route redirect during initial bootstrap', async () => {
         const service = TestBed.inject(RuntimeService);
         spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({ ok: false }), {
