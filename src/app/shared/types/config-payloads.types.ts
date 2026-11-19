@@ -543,6 +543,23 @@ export type TDraftSiteEnvironmentConfig = {
     readonly aliases?: readonly string[];
 };
 
+export type TDraftCatalogEntry = {
+    readonly entryId: string;
+    readonly kind: 'website' | 'app';
+    readonly path: string;
+    readonly title: string;
+    readonly description: string;
+    readonly imageUrl: string;
+    readonly imageAlt: string;
+    readonly enabled: boolean;
+    readonly category?: string;
+    readonly builtWith?: 'zoolandingpage' | 'zoositioweb';
+};
+
+export type TDraftCatalogConfig = {
+    readonly entries: readonly TDraftCatalogEntry[];
+};
+
 export type TDraftSiteConfigPayload = {
     readonly version: number;
     readonly domain: string;
@@ -554,6 +571,7 @@ export type TDraftSiteConfigPayload = {
     readonly sitemap?: TDraftSitemapConfig;
     readonly lifecycle?: TSiteLifecycleConfig;
     readonly runtime?: TDraftSiteRuntimeConfig;
+    readonly catalog?: TDraftCatalogConfig;
     readonly site: TDraftSiteSharedConfig;
     readonly defaults?: TDraftSiteDefaultsConfig;
 };

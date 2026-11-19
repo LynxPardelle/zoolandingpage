@@ -3,6 +3,52 @@
   "title": "SiteConfigPayload",
   "type": "object",
   "definitions": {
+    "draftCatalogPlainText": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![\\s\\S]*[<>\\u0000-\\u001F\\u007F-\\u009F])\\S(?:[\\s\\S]*\\S)?(?![\\s\\S])",
+      "description": "Trimmed NFC Unicode plain text. Semantic validation also excludes Unicode format controls and unpaired surrogates."
+    },
+    "draftCatalogEntry": {
+      "type": "object",
+      "required": ["entryId", "kind", "path", "title", "description", "imageUrl", "imageAlt", "enabled"],
+      "properties": {
+        "entryId": { "type": "string", "maxLength": 64, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])" },
+        "kind": { "enum": ["website", "app"] },
+        "path": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^(?!.*(?:^|/)\\.{1,2}(?:/|$))/(?:[A-Za-z0-9._~-]+(?:/[A-Za-z0-9._~-]+)*)?(?![\\s\\S])",
+          "description": "An exact static public route other than a redirect source. Semantic validation checks the current routes and redirects."
+        },
+        "title": { "type": "string", "maxLength": 100, "allOf": [{ "$ref": "#/definitions/draftCatalogPlainText" }] },
+        "description": { "type": "string", "maxLength": 320, "allOf": [{ "$ref": "#/definitions/draftCatalogPlainText" }] },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 1024,
+          "pattern": "^https://[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*(?:/[^\\s\\\\?#\\u0000-\\u001F\\u007F-\\u009F]*)?(?![\\s\\S])",
+          "description": "An HTTPS cover at the canonical source host or assets.zoolandingpage.com.mx. Semantic validation checks the host against the source identity."
+        },
+        "imageAlt": { "type": "string", "maxLength": 200, "allOf": [{ "$ref": "#/definitions/draftCatalogPlainText" }] },
+        "enabled": { "type": "boolean" },
+        "category": { "type": "string", "maxLength": 48, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])" },
+        "builtWith": { "enum": ["zoolandingpage", "zoositioweb"] }
+      },
+      "additionalProperties": false
+    },
+    "draftCatalogConfig": {
+      "type": "object",
+      "required": ["entries"],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "maxItems": 32,
+          "items": { "$ref": "#/definitions/draftCatalogEntry" },
+          "description": "Each entry must have a unique entryId and path within this source."
+        }
+      },
+      "additionalProperties": false
+    },
     "publicRedirectPath": {
       "type": "string",
       "maxLength": 256,
@@ -1353,6 +1399,7 @@
       "type": "array",
       "items": { "$ref": "#/definitions/siteRouteEntry" }
     },
+    "catalog": { "$ref": "#/definitions/draftCatalogConfig" },
     "site": { "$ref": "#/definitions/siteSharedConfig" },
     "defaults": { "$ref": "#/definitions/siteDefaultsConfig" },
     "sitemap": { "$ref": "#/definitions/sitemapConfig" },
