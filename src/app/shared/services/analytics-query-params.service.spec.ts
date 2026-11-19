@@ -81,6 +81,48 @@ describe('AnalyticsService URL query context', () => {
     ]);
   });
 
+  it('captures a 64 KiB campaign value without blocking the browser for a second', async () => {
+    const length = 64 * 1024;
+    setUrl(`/?campaign=${ 'a'.repeat(length) }`);
+
+    const started = performance.now();
+    await service.track('long_campaign_event');
+    const elapsed = performance.now() - started;
+    const params = service.flush()[0].queryParams;
+
+    expect(elapsed).toBeLessThan(1000);
+    expect(params?.length).toBe(1);
+    expect(params?.[0].key).toBe('campaign');
+    expect(params?.[0].value.length).toBe(length);
+  }, 30000);
+
+  it('omits excessively nested URL values while preserving ordinary campaign context', async () => {
+    const params = new URLSearchParams({
+      source: 'newsletter',
+      landing: 'https://example.invalid/?next=' + 'a?next='.repeat(32) + 'end',
+    });
+    setUrl(`/?${ params }`);
+
+    await service.track('deep_url_event');
+
+    expect(service.flush()[0].queryParams?.map(param => param.key)).toEqual(['source']);
+  });
+
+  it('bounds privacy inspection of a 64 KiB nested URL chain', async () => {
+    const params = new URLSearchParams({
+      source: 'newsletter',
+      landing: 'https://example.invalid/?next=' + 'a?next='.repeat(9363) + 'end',
+    });
+    setUrl(`/?${ params }`);
+
+    const started = performance.now();
+    await service.track('long_nested_url_event');
+    const elapsed = performance.now() - started;
+
+    expect(elapsed).toBeLessThan(1000);
+    expect(service.flush()[0].queryParams?.map(param => param.key)).toEqual(['source']);
+  }, 30000);
+
   it('uses an empty array when the injected document has no browser window', async () => {
     spyOnProperty(TestBed.inject(DOCUMENT), 'defaultView', 'get').and.returnValue(null);
 
