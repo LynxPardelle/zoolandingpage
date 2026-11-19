@@ -1,0 +1,12 @@
+# Dipsy Doo WhatsApp campaign analytics
+
+Date: 2026-11-19 (Central Time).
+
+- Add `whatsapp_click` in category `cta` to all 11 direct WhatsApp links. Use the static component ID as the label and the shared current-URL `queryParams` capture; do not forward phone numbers, destination URLs or prefilled messages as event metadata.
+- Open those links in a new tab with the existing rendered safe rel policy and an accessible announcement, keeping the source page available for asynchronous analytics. Preserve destinations, prefilled messages and all other links.
+- Promote through [DEV PR 30](https://github.com/LynxPardelle/draft-dipsydoo-com-mx/pull/30), [TEST PR 31](https://github.com/LynxPardelle/draft-dipsydoo-com-mx/pull/31) and [production PR 32](https://github.com/LynxPardelle/draft-dipsydoo-com-mx/pull/32) using the protected workflow. Publish MAIN `95f7a714e833fdc00aec5f78fbf464709feae5fa` in [run 44590002271](https://github.com/LynxPardelle/draft-dipsydoo-com-mx/actions/runs/44590002271) as `production-95f7a714e833fdc00aec5f78fbf464709feae5fa-44590002271-1`.
+- Verify all five published production route configurations and all 11 link definitions. Keep analytics enabled with the existing consent and optional-enrichment settings; preserve the latest testimonial photos, protocol, calendars and SEO.
+- Complete TEST desktop/mobile QA across five routes: 22 clicks produce exactly one dedicated event each. Desktop and mobile campaign-to-Contact journeys retain the same analytics session after internal navigation removes campaign queries.
+- Verify all 22 production link/viewport cases and both session-attribution journeys. Retain the initial fast-click observation and its isolated client-readiness recheck; the recheck confirms the click handler is attached before activation and produces exactly one event.
+- Send exactly one synthetic production `whatsapp_click`, receive API HTTP 200 with the matching event timestamp, and read its exact name/category/label and seven ordered query entries from raw storage. The bounded lookup reads one matching object in memory; event metadata and contact fields are absent. No WhatsApp messages or analytics resends occur during verification.
+- Measure contact intent from clicks. For navigation that removes URL queries, attribute the later click using the preceding campaign-bearing page view in the same session; a click does not confirm a sent WhatsApp message.
