@@ -1,6 +1,7 @@
 import type { TTrackOptions } from '@/app/shared/types/analytics.type';
 import { normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import { isDraftFontFaces } from '@/app/shared/utility/fonts/draft-font-config';
+import { isPublicRouteRedirects } from '@/app/shared/utility/route-matching/public-route-redirect';
 import type {
     TContentHubRuntimeArticleContent,
     TContentHubRobotsPolicy,
@@ -1042,6 +1043,7 @@ const isDraftSiteSeoConfig = (value: unknown): value is TDraftSiteSeoConfig => {
     if (value['canonicalOrigin'] !== undefined && typeof value['canonicalOrigin'] !== 'string') return false;
     if (value['enforceCanonicalHost'] !== undefined && typeof value['enforceCanonicalHost'] !== 'boolean') return false;
     if (value['forceHttps'] !== undefined && typeof value['forceHttps'] !== 'boolean') return false;
+    if (value['redirects'] !== undefined && !isPublicRouteRedirects(value['redirects'])) return false;
     if (value['defaultImage'] !== undefined && typeof value['defaultImage'] !== 'string') return false;
     if (value['openGraph'] !== undefined && !isRecord(value['openGraph'])) return false;
     if (value['twitter'] !== undefined && !isRecord(value['twitter'])) return false;
@@ -3097,6 +3099,8 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (value['runtime'] !== undefined && !isDraftSiteRuntimeConfig(value['runtime'])) return false;
     if (value['sitemap'] !== undefined && !isDraftSitemapConfig(value['sitemap'])) return false;
     if (!isDraftSiteSharedConfig(value['site'])) return false;
+    const seo = (value['site'] as Record<string, unknown>)['seo'];
+    if (isRecord(seo) && seo['redirects'] !== undefined && !isPublicRouteRedirects(seo['redirects'], value['routes'] as unknown[])) return false;
     const supportedLanguages = new Set(
         (value['site'] as Record<string, unknown>)['i18n']
             && isRecord((value['site'] as Record<string, unknown>)['i18n'])

@@ -46,4 +46,13 @@ describe('browser navigation utility', () => {
 
     expect(startListener).not.toHaveBeenCalled();
   });
+
+  it('replaces a migrated URL without adding another history entry', () => {
+    const replace = spyOn(window.history, 'replaceState').and.callThrough();
+    const push = spyOn(window.history, 'pushState').and.callThrough();
+    navigateInCurrentWindow('/sitios-web', { replace: true });
+    expect(currentBrowserPath()).toBe('/sitios-web');
+    expect(replace).toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
 });

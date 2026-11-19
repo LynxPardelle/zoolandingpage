@@ -5,6 +5,20 @@ import test from 'node:test';
 const schemaPath = new URL('../../docs/api-driven-config/schemas/site-config.schema.json', import.meta.url);
 const zoositePilotFixturePath = new URL('./fixtures/zoosite-auth-pilot/site-config.json', import.meta.url);
 
+test('site SEO route redirects are an optional bounded closed same-origin contract', async () => {
+    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+    const redirects = schema.definitions.siteSeoConfig.properties.redirects;
+    assert.equal(redirects?.type, 'array');
+    assert.equal(redirects.maxItems, 32);
+    assert.equal(redirects.items.$ref, '#/definitions/publicRouteRedirect');
+    const rule = schema.definitions.publicRouteRedirect;
+    assert.equal(rule.additionalProperties, false);
+    assert.deepEqual(rule.required, ['from', 'to']);
+    const path = new RegExp(schema.definitions.publicRedirectPath.pattern);
+    for (const valid of ['/landingpages', '/sitios-web', '/old/catalog/', '/']) assert.equal(path.test(valid), true);
+    for (const invalid of ['https://outside.example/', '//outside.example', '/old/../new', '/%2foutside', '/old?x=1', '/old#top', '/a\\b']) assert.equal(path.test(invalid), false, invalid);
+});
+
 test('content hub locale policy is a closed optional opt-in with no global default', async () => {
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
     const publicSchema = JSON.parse(await readFile(
