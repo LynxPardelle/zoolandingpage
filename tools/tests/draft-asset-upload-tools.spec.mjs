@@ -19,7 +19,7 @@ import {
 } from '../upload-draft-asset.mjs';
 
 test('upload helper normalizes domains, ids, and MIME types', () => {
-  assert.equal(normalizeDomain('https://PamelaBetancourt.com/path'), 'pamelabetancourt.com');
+  assert.equal(normalizeDomain('https://Example.com/path'), 'example.com');
   assert.equal(sanitizeAssetId(' hero principal @ 2026 '), 'hero-principal-2026');
   assert.equal(contentTypeForFile('cover.JPG'), 'image/jpeg');
   assert.equal(contentTypeForFile('cover.svg'), 'image/svg+xml');
@@ -47,14 +47,14 @@ test('buildUploadRequest sends small images as direct base64 payloads', async ()
     const file = path.join(tempDir, 'hero.gif');
     await writeFile(file, Buffer.from('gif-bytes'));
     const request = await buildUploadRequest({
-      domain: 'pamelabetancourt.com',
+      domain: 'example.com',
       page: 'shared',
       kind: 'images',
       id: 'hero principal',
       file,
       grant: 'grant-token',
     }, {});
-    assert.equal(request.payload.domain, 'pamelabetancourt.com');
+    assert.equal(request.payload.domain, 'example.com');
     assert.equal(request.payload.assetId, 'hero-principal');
     assert.equal(request.payload.contentType, 'image/gif');
     assert.equal(request.payload.contentLength, 9);
@@ -66,14 +66,14 @@ test('buildUploadRequest sends small images as direct base64 payloads', async ()
 
 test('grant request builder uses limited defaults', () => {
   const request = buildGrantRequest({
-    domain: 'PamelaBetancourt.com',
+    domain: 'Example.com',
     'usage-limit': '3',
     kinds: 'images,hero-images',
   }, {
     ZLP_UPLOAD_GRANT_ISSUED_BY: 'test-admin',
   });
   assert.equal(request.action, 'issueUploadGrant');
-  assert.equal(request.domain, 'pamelabetancourt.com');
+  assert.equal(request.domain, 'example.com');
   assert.equal(request.usageLimit, 3);
   assert.deepEqual(request.allowedAssetKinds, ['images', 'hero-images']);
   assert.equal(request.allowOverwrite, false);

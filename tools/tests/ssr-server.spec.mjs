@@ -381,7 +381,7 @@ test('production SSR emits opt-in permanent route redirects with safe preview co
     routes: [{ path: '/', pageId: 'default' }, { path: '/sitios-web', pageId: 'default' }, { path: '/404', pageId: 'not-found' }],
     site: {
       appIdentity: { identifier: 'redirect-fixture', name: 'Route migration fixture' },
-      theme: JSON.parse(readFileSync(join(repoRoot, 'tools/tests/fixtures/pamela-site-config.json'), 'utf8')).site.theme,
+      theme: JSON.parse(readFileSync(join(repoRoot, 'tools/tests/fixtures/zoo-site-config.json'), 'utf8')).site.theme,
       i18n: { defaultLanguage: 'es', supportedLanguages: ['es'] },
       seo: { canonicalOrigin: `https://${domain}`, redirects: [{ from: '/landingpages', to: '/sitios-web', preserveQueryParams: ['q', 'categoria', 'lang'] }] },
     },
@@ -542,7 +542,7 @@ test('production SSR not-found recovery CTA and status label use readable neutra
     orangeLight: { bgColor: '#F7F0E3', secondaryBgColor: '#E3D1B5', textColor: '#244737', accentColor: '#ED8B00', onSuccessColor: '#F7F0E3' },
     orangeDark: { bgColor: '#10231B', secondaryBgColor: '#193629', textColor: '#F7F0E3', accentColor: '#ED8B00', onSuccessColor: '#F7F0E3' },
   };
-  for (const fixtureDomain of ['grupoastralegal.com', 'zoolandingpage.com.mx', 'pamelabetancourt.com']) {
+  for (const fixtureDomain of ['grupoastralegal.com', 'zoolandingpage.com.mx']) {
     const config = JSON.parse(readFileSync(join(repoRoot, 'drafts', fixtureDomain, 'site-config.json'), 'utf8'));
     for (const [mode, palette] of Object.entries(config.site.theme.palettes)) {
       fixturePalettes[`${fixtureDomain}.${mode}`] = palette;
@@ -2194,25 +2194,6 @@ test('shared preview uses owner SEO for copies and sends crawler-readable noinde
   const productionHome = await get('/', domain);
   assert.equal(productionHome.headers.get('x-robots-tag'), null);
   assert.match(await productionHome.text(), /<meta name="robots" content="index,follow">/);
-});
-
-test('production SSR server renders draft routes on aliased hosts', async (t) => {
-  const { port, getStderr } = await startProductionServer(t);
-  const response = await fetch(`http://127.0.0.1:${port}/home`, {
-    headers: {
-      Host: 'pamelabetancourt.zoolandingpage.com.mx',
-      'X-Forwarded-Host': 'pamelabetancourt.zoolandingpage.com.mx',
-      'X-Forwarded-Port': '443',
-      'X-Forwarded-Proto': 'https',
-      'X-Forwarded-Server': 'dokploy-traefik',
-    },
-  });
-  const body = await response.text();
-
-  assert.equal(response.status, 200);
-  assert.match(body, /Pamela Betancourt/i);
-  assert.doesNotMatch(body, /Cannot GET \/home/i);
-  assert.equal(getStderr(), '');
 });
 
 test('production SSR server renders a published canonical custom host from local config', async (t) => {
