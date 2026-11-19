@@ -20,6 +20,7 @@ Use this checklist when creating a new draft repository after the secure release
 
 ## Preconditions
 
+- The [shared administrative access requirement](../../docs/administrative-access.md) has been reviewed. The target organization and both required operators' active owner memberships are verified; a personal repository or an unaccepted invitation does not satisfy this requirement.
 - Canonical domain is known.
 - Production aliases are known.
 - Test aliases are known or can be generated.
@@ -30,7 +31,7 @@ Use this checklist when creating a new draft repository after the secure release
 
 ## Setup Checklist
 
-1. Create GitHub repository named `draft-{domain}`. Prefer private during initial import, then make it public only after the public-safety audit passes.
+1. Create GitHub repository named `draft-{domain}` in the verified project organization and read back administrative access for both required operators. Prefer private during initial import, then make it public only after the public-safety audit passes. If either operator lacks verified active administrative access, record the blocker and stop setup. Record organization-plan protection limitations and resolve them before declaring setup complete; setup helpers do not automatically audit shared access.
 2. Add or update the draft entry in `docs/drafts-registry.json`. Version 2 requires `deploymentEnvironments`; production-only, reversed, duplicated, missing, and unknown values are invalid.
 3. Add sanitized draft payload and required public asset references only.
 4. Run the bootstrap helper from the hub repo:
@@ -128,6 +129,7 @@ Use this checklist when creating a new draft repository after the secure release
 
 ## Acceptance Checks
 
+- Both required operators have active administrative access to the repository and its required shared services, verified separately under the [shared administrative access requirement](../../docs/administrative-access.md). Pending invitations, personal-account collaborator access, and successful setup-helper output do not satisfy this check.
 - No local-only folders or PII-risk files are tracked.
 - `docs/drafts-registry.json` contains the draft's domain, resolved GitHub owner, repo, GitHub URL, in-tree local path under `drafts/{domain}`, and exact allowed deployment environments.
 - `node tools/draft-repo-preflight.mjs --pull=true` can clone missing registered repos and pull clean repos.

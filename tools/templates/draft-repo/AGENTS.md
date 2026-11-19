@@ -19,6 +19,7 @@ Do not load the whole hub, local documentation tree, or changelog unless the rou
 
 ## Git And Publication
 
+- Before creating a repository or shared service, verify both required operators' administrative access under https://github.com/LynxPardelle/zoolandingpage/blob/main/docs/administrative-access.md. Pending invitations and personal-repository write access do not satisfy this requirement; setup helpers do not enforce it automatically.
 - Work on `dev`; promote with a separate `dev -> test` pull request. Promote `test -> main` only when production is authorized, or through a separately authorized decommission-only change for legacy production surfaces.
 - `dev` does not deploy. `test` deploys only the test environment after merge. `main` deploys production only after merge when `draft-repo.config.json` explicitly enables production; test-only drafts stop at `test`.
 - Pull with `--ff-only` only when the worktree is clean. Report dirty, detached, or unexpected branch state before changing files.
