@@ -30,4 +30,9 @@ jobs:
       - run: npm test -- --watch=false --browsers=ChromeHeadlessStable
       - run: npm audit --omit=dev
       - run: npm run package:ssr:lambda
+      - name: Verify self-contained content hub SSR
+        run: >-
+          node --test
+          --test-name-pattern="^THN strict Journal SSR|^production SSR exposes Zoosite content hub SEO sitemap feed and search$"
+          tools/tests/ssr-server.spec.mjs
       - run: npm run test:browser-icons:built
