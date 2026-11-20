@@ -65,11 +65,11 @@ GitHub Actions deploys use the IAM-protected Lambda Function URL, not the public
 
 Production aliases resolve to the production published draft. Test aliases resolve to the test published draft.
 
-Examples for `pamelabetancourt.com`:
+Examples for `example.com`:
 
-- production: `pamelabetancourt.com`
-- test: `test.pamelabetancourt.com`
-- test: `test.pamelabetancourt.zoolandingpage.com.mx`
+- production: `example.com`
+- test: `test.example.com`
+- test: `test.example.zoolandingpage.com.mx`
 
 Runtime resolution should use alias metadata to select the environment-specific published pointer.
 

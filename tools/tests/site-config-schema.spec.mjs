@@ -1,9 +1,96 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import Ajv from 'ajv';
+import ts from 'typescript';
+import { createThnJournalSiteConfig } from './fixtures/thn-journal-ssr.mjs';
+import { createZoositeContentHubFixture } from './fixtures/zoosite-content-hub-ssr.mjs';
 
 const schemaPath = new URL('../../docs/api-driven-config/schemas/site-config.schema.json', import.meta.url);
 const zoositePilotFixturePath = new URL('./fixtures/zoosite-auth-pilot/site-config.json', import.meta.url);
+
+// Read the runtime's leaf contract without copying its color names into the test.
+const themeSource = await readFile(new URL('../../src/app/shared/types/theme.types.ts', import.meta.url), 'utf8');
+const themeJavascript = ts.transpileModule(themeSource, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+}).outputText;
+const { THEME_COLOR_KEYS } = await import(`data:text/javascript;base64,${Buffer.from(themeJavascript).toString('base64')}`);
+
+for (const schemaName of ['site-config', 'variables']) {
+    const schema = JSON.parse(await readFile(
+        new URL(`../../docs/api-driven-config/schemas/${schemaName}.schema.json`, import.meta.url), 'utf8'));
+    const { themeColors, themeConfig, themeUi } = schema.definitions;
+    const validateTheme = new Ajv({ allErrors: true }).compile({
+        $ref: '#/definitions/themeConfig',
+        definitions: { themeConfig, themeColors, themeUi },
+    });
+    const makeTheme = () => ({ palettes: {
+        light: Object.fromEntries(THEME_COLOR_KEYS.map(key => [key, '#ffffff'])),
+        dark: Object.fromEntries(THEME_COLOR_KEYS.map(key => [key, '#111111'])),
+    } });
+
+    test(`${schemaName} palette schema requires exactly the runtime color vocabulary`, () => {
+        assert.deepEqual(Object.keys(themeColors.properties).sort(), [...THEME_COLOR_KEYS].sort());
+        assert.deepEqual([...themeColors.required].sort(), [...THEME_COLOR_KEYS].sort());
+        assert.equal(themeColors.additionalProperties, false);
+    });
+
+    test(`${schemaName} schema accepts complete runtime SSR themes in both palettes`, () => {
+        for (const theme of [makeTheme(), createThnJournalSiteConfig().site.theme,
+            createZoositeContentHubFixture().localSiteConfig.site.theme]) {
+            assert.equal(validateTheme(theme), true, JSON.stringify(validateTheme.errors));
+        }
+    });
+
+    test(`${schemaName} schema rejects every missing or non-string runtime color`, () => {
+        for (const mode of ['light', 'dark']) {
+            for (const key of THEME_COLOR_KEYS) {
+                const missing = makeTheme();
+                delete missing.palettes[mode][key];
+                assert.equal(validateTheme(missing), false, `${mode}.${key} is required`);
+                assert.ok(validateTheme.errors.some(error => error.keyword === 'required'
+                    && error.instancePath === `/palettes/${mode}` && error.params.missingProperty === key));
+                for (const value of [null, 42, false, {}, []]) {
+                    const invalid = makeTheme();
+                    invalid.palettes[mode][key] = value;
+                    assert.equal(validateTheme(invalid), false, `${mode}.${key} must be a string`);
+                    assert.ok(validateTheme.errors.some(error => error.keyword === 'type'
+                        && error.instancePath === `/palettes/${mode}/${key}`));
+                }
+            }
+        }
+    });
+
+    test(`${schemaName} schema retains closed palettes and both required modes`, () => {
+        for (const mode of ['light', 'dark']) {
+            const extra = makeTheme();
+            extra.palettes[mode].unknownColor = '#123456';
+            assert.equal(validateTheme(extra), false);
+            const missing = makeTheme();
+            delete missing.palettes[mode];
+            assert.equal(validateTheme(missing), false);
+        }
+    });
+}
+
+test('the documented theme example satisfies both JSON theme contracts', async () => {
+    const markdown = await readFile(new URL('../../docs/api-driven-config/07-example-landing-config.md', import.meta.url), 'utf8');
+    const section = markdown.slice(markdown.indexOf('### Variables payload'));
+    const example = JSON.parse(section.match(/```json\s*([\s\S]*?)```/)[1]);
+    for (const schemaName of ['site-config', 'variables']) {
+        const schema = JSON.parse(await readFile(
+            new URL(`../../docs/api-driven-config/schemas/${schemaName}.schema.json`, import.meta.url), 'utf8'));
+        const { themeColors, themeConfig, themeUi } = schema.definitions;
+        const validate = new Ajv().compile({ $ref: '#/definitions/themeConfig', definitions: { themeColors, themeConfig, themeUi } });
+        assert.equal(validate(example.variables.theme), true, `${schemaName}: ${JSON.stringify(validate.errors)}`);
+    }
+});
+
+test('variables without an override theme remain valid', async () => {
+    const schema = JSON.parse(await readFile(new URL('../../docs/api-driven-config/schemas/variables.schema.json', import.meta.url), 'utf8'));
+    const validate = new Ajv().compile(schema);
+    assert.equal(validate({ version: 1, domain: 'theme-fixture.example', pageId: 'default', variables: {} }), true);
+});
 
 test('site SEO route redirects are an optional bounded closed same-origin contract', async () => {
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
@@ -17,6 +104,59 @@ test('site SEO route redirects are an optional bounded closed same-origin contra
     const path = new RegExp(schema.definitions.publicRedirectPath.pattern);
     for (const valid of ['/landingpages', '/sitios-web', '/old/catalog/', '/']) assert.equal(path.test(valid), true);
     for (const invalid of ['https://outside.example/', '//outside.example', '/old/../new', '/%2foutside', '/old?x=1', '/old#top', '/a\\b']) assert.equal(path.test(invalid), false, invalid);
+});
+
+test('site-config declares the optional bounded public catalog at the root', async () => {
+    const schema = await readJson(schemaPath);
+    const resolve = (property) => property.$ref ? schema.definitions[property.$ref.split('/').at(-1)] : property;
+
+    assert.ok(schema.properties.catalog, 'The authored public catalog must be a site-config root property');
+    assert.equal(schema.required.includes('catalog'), false);
+    const catalog = resolve(schema.properties.catalog);
+    assert.equal(catalog.type, 'object');
+    assert.equal(catalog.additionalProperties, false);
+    assert.deepEqual(catalog.required, ['entries']);
+    assert.deepEqual(Object.keys(catalog.properties), ['entries']);
+
+    const entries = resolve(catalog.properties.entries);
+    assert.equal(entries.type, 'array');
+    assert.equal(entries.maxItems, 32);
+    assert.ok((entries.minItems ?? 0) === 0, 'An empty catalog can retire every entry');
+
+    const entry = resolve(entries.items);
+    assert.equal(entry.type, 'object');
+    assert.equal(entry.additionalProperties, false);
+    const required = ['entryId', 'kind', 'path', 'title', 'description', 'imageUrl', 'imageAlt', 'enabled'];
+    assert.deepEqual([...entry.required].sort(), required.sort());
+    assert.deepEqual(Object.keys(entry.properties).sort(), [...required, 'category', 'builtWith'].sort());
+    assert.deepEqual([...resolve(entry.properties.kind).enum].sort(), ['app', 'website']);
+    assert.deepEqual([...resolve(entry.properties.builtWith).enum].sort(), ['zoolandingpage', 'zoositioweb']);
+    assert.equal(resolve(entry.properties.enabled).type, 'boolean');
+
+    for (const [name, max] of Object.entries({
+        entryId: 64, category: 48, path: 256, title: 100, description: 320, imageAlt: 200, imageUrl: 1024,
+    })) {
+        const field = resolve(entry.properties[name]);
+        assert.equal(field.type, 'string', name);
+        assert.equal(field.maxLength, max, name);
+    }
+
+    const pathPattern = new RegExp(resolve(entry.properties.path).pattern);
+    for (const valid of ['/', '/sitios-web', '/en/A-1._~']) assert.match(valid, pathPattern);
+    for (const invalid of [
+        'sitios-web', '/sitios-web/', '//example.test', '/x//y', '/x/./y', '/x/../y',
+        '/x/%2e%2e', '/x?draft=1', '/x#top', '/x\\y', '/x\n', '/año',
+    ]) assert.doesNotMatch(invalid, pathPattern);
+
+    const imagePattern = new RegExp(resolve(entry.properties.imageUrl).pattern);
+    assert.match('https://assets.zoolandingpage.com.mx/catalog/cover.webp', imagePattern);
+    assert.match('https://preview.example.test/catalog/cover.webp', imagePattern);
+    for (const invalid of [
+        '//preview.example.test/cover.webp', 'http://preview.example.test/cover.webp',
+        'https://user@preview.example.test/cover.webp', 'https://preview.example.test:443/cover.webp',
+        'https://preview.example.test/cover.webp?x=1', 'https://preview.example.test/cover.webp#top',
+        'https://preview.example.test/cover.webp\n', 'https://preview.example.test/a\\cover.webp',
+    ]) assert.doesNotMatch(invalid, imagePattern);
 });
 
 test('content hub locale policy is a closed optional opt-in with no global default', async () => {

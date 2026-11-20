@@ -19,6 +19,7 @@ Do not load the whole hub, local documentation tree, or changelog unless the rou
 
 ## Git And Publication
 
+- Every existing or new project repository must give both `LynxPardelle` and `Toydrum` active write access. Follow https://github.com/LynxPardelle/zoolandingpage/blob/dev/docs/repository-write-access.md; the personal owner adds the other account as a collaborator. Pending invitations do not satisfy the requirement, and setup helpers do not enforce it automatically.
 - Work on `dev`; promote with a separate `dev -> test` pull request. Promote `test -> main` only when production is authorized, or through a separately authorized decommission-only change for legacy production surfaces.
 - `dev` does not deploy. `test` deploys only the test environment after merge. `main` deploys production only after merge when `draft-repo.config.json` explicitly enables production; test-only drafts stop at `test`.
 - Pull with `--ff-only` only when the worktree is clean. Report dirty, detached, or unexpected branch state before changing files.

@@ -24,7 +24,7 @@ Do not commit grants, tokens, signed upload URLs, `.env*`, `.zlp/`, or generated
 
 When a client or teammate needs to upload images, they should ask Alec or an authorized Zoolanding developer for a temporary upload grant and provide:
 
-- the draft domain, such as `pamelabetancourt.com`
+- the draft domain, such as `example.com`
 - expected asset kinds, such as `images`, `hero-images`, `logos`, or `seo-images`
 - expected number of uploads
 - whether any existing asset must be intentionally replaced
@@ -38,7 +38,7 @@ Store received grants outside git-tracked files. The recommended local shape is:
 
 ```powershell
 New-Item -ItemType Directory -Force .zlp\upload-grants
-Set-Content -NoNewline .zlp\upload-grants\pamelabetancourt-com.token "<grant-token>"
+Set-Content -NoNewline .zlp\upload-grants\example-com.token "<grant-token>"
 ```
 
 The hub `.gitignore` and draft repo templates ignore `.zlp/`, `.env*`, `*.token`, `*.grant`, and `upload-grants/`.
@@ -49,18 +49,18 @@ Run this from the `zoolandingpage` hub repo root:
 
 ```powershell
 node tools/upload-draft-asset.mjs `
-  --domain=pamelabetancourt.com `
+  --domain=example.com `
   --page=shared `
   --kind=images `
   --id=hero-principal `
   --file="C:\path\hero.webp" `
-  --grant-file=".zlp\upload-grants\pamelabetancourt-com.token"
+  --grant-file=".zlp\upload-grants\example-com.token"
 ```
 
 The tool prints the final `publicUrl`, not the grant:
 
 ```text
-publicUrl: https://assets.zoolandingpage.com.mx/pamelabetancourt.com/shared/images/hero-principal.webp
+publicUrl: https://assets.zoolandingpage.com.mx/example.com/shared/images/hero-principal.webp
 ```
 
 Write that `publicUrl` into the relevant draft JSON. The exact field depends on the draft component or SEO setting. Never write the presigned `uploadUrl`; it expires and can grant temporary upload capability while active.
@@ -86,12 +86,12 @@ Overwrites are blocked by default. If an asset must be replaced, ask for an over
 
 ```powershell
 node tools/upload-draft-asset.mjs `
-  --domain=pamelabetancourt.com `
+  --domain=example.com `
   --page=shared `
   --kind=images `
   --id=hero-principal `
   --file="C:\path\hero.webp" `
-  --grant-file=".zlp\upload-grants\pamelabetancourt-com-overwrite.token" `
+  --grant-file=".zlp\upload-grants\example-com-overwrite.token" `
   --overwrite
 ```
 
@@ -105,12 +105,12 @@ For larger files, presigned PUT can be enabled only when the grant explicitly al
 
 ```powershell
 node tools/upload-draft-asset.mjs `
-  --domain=pamelabetancourt.com `
+  --domain=example.com `
   --page=shared `
   --kind=images `
   --id=large-background `
   --file="C:\path\large-background.avif" `
-  --grant-file=".zlp\upload-grants\pamelabetancourt-com-large.token" `
+  --grant-file=".zlp\upload-grants\example-com-large.token" `
   --presigned
 ```
 
@@ -122,7 +122,7 @@ Only Alec or an authorized Zoolanding developer should issue grants. The tool re
 
 ```powershell
 node tools/issue-upload-grant.mjs `
-  --domain=pamelabetancourt.com `
+  --domain=example.com `
   --usage-limit=10 `
   --expires-seconds=28800 `
   --max-bytes=5242880 `
