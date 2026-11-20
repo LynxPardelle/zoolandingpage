@@ -50,13 +50,14 @@ Checks:
 
 Symptoms:
 
-- The draft renders with fallback Zoo colors instead of the draft brand palette.
+- A site or variables payload containing an incomplete theme is rejected during load.
 - Theme toggle works, but the colors do not match the draft.
 
 Checks:
 
 - Verify `site-config.json.site.theme.palettes.light` and `site-config.json.site.theme.palettes.dark` both exist.
-- Verify every palette includes all required keys: `bgColor`, `textColor`, `titleColor`, `linkColor`, `accentColor`, `secondaryBgColor`, `secondaryTextColor`, `secondaryTitleColor`, `secondaryLinkColor`, `secondaryAccentColor`.
+- Verify every palette includes all 18 required string keys from [THEME_COLOR_KEYS](../../src/app/shared/types/theme.types.ts): `bgColor`, `textColor`, `titleColor`, `linkColor`, `accentColor`, `secondaryBgColor`, `secondaryTextColor`, `secondaryTitleColor`, `secondaryLinkColor`, `secondaryAccentColor`, `successColor`, `onSuccessColor`, `errorColor`, `onErrorColor`, `warningColor`, `onWarningColor`, `infoColor`, `onInfoColor`.
+- Apply the same complete-palette contract to any `variables.theme` override. Omitting that override remains allowed; declaring it requires both complete palettes. Missing colors are not synthesized before validation.
 - Verify `site-config.json.site.theme.defaultMode` is `light`, `dark`, or `auto`.
 - Verify modal accent overrides, if used, stay within `accentColor` or `secondaryAccentColor`.
 - Hard refresh after switching drafts to confirm there is no stale palette state from a previous draft.

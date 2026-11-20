@@ -918,7 +918,15 @@
         "secondaryTextColor",
         "secondaryTitleColor",
         "secondaryLinkColor",
-        "secondaryAccentColor"
+        "secondaryAccentColor",
+        "successColor",
+        "onSuccessColor",
+        "errorColor",
+        "onErrorColor",
+        "warningColor",
+        "onWarningColor",
+        "infoColor",
+        "onInfoColor"
       ],
       "properties": {
         "bgColor": { "type": "string" },
@@ -930,7 +938,15 @@
         "secondaryTextColor": { "type": "string" },
         "secondaryTitleColor": { "type": "string" },
         "secondaryLinkColor": { "type": "string" },
-        "secondaryAccentColor": { "type": "string" }
+        "secondaryAccentColor": { "type": "string" },
+        "successColor": { "type": "string" },
+        "onSuccessColor": { "type": "string" },
+        "errorColor": { "type": "string" },
+        "onErrorColor": { "type": "string" },
+        "warningColor": { "type": "string" },
+        "onWarningColor": { "type": "string" },
+        "infoColor": { "type": "string" },
+        "onInfoColor": { "type": "string" }
       },
       "additionalProperties": false
     },
