@@ -1,6 +1,7 @@
 import type { TTrackOptions } from '@/app/shared/types/analytics.type';
 import { normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import { isDraftFontFaces } from '@/app/shared/utility/fonts/draft-font-config';
+import { normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { isPublicRouteRedirects } from '@/app/shared/utility/route-matching/public-route-redirect';
 import type {
     TContentHubRuntimeArticleContent,
@@ -25,6 +26,8 @@ import type {
     TDraftAppIdentityVariableConfig,
     TDraftAuthRemoteRuntimeConfig,
     TDraftAuthRuntimeConfig,
+    TDraftCatalogConfig,
+    TDraftCatalogEntry,
     TDraftEnvironmentGateConfig,
     TDraftContactVariableConfig,
     TDraftFeatureRuntimeConfig,
@@ -38,6 +41,7 @@ import type {
     TDraftSiteDefaultsConfig,
     TDraftSiteEnvironmentConfig,
     TDraftSiteIconConfig,
+    TDraftSiteRouteEntry,
     TDraftSiteRuntimeConfig,
     TDraftRouteAuthConfig,
     TDraftSiteSeoConfig,
@@ -47,6 +51,7 @@ import type {
     TDraftUiVariableConfig,
     TI18nPayload,
     TPageConfigPayload,
+    TPublicRouteRedirect,
     TRuntimeApiActionConfig,
     TRuntimeBundlePayload,
     TRuntimeDataSourceConfig,
@@ -917,7 +922,7 @@ const isDraftSocialLinkConfig = (value: unknown): value is TDraftSocialLinkConfi
     return true;
 };
 
-const isDraftSiteRouteEntry = (value: unknown): boolean => {
+const isDraftSiteRouteEntry = (value: unknown): value is TDraftSiteRouteEntry => {
     if (!isRecord(value)) return false;
     if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) return false;
     if (typeof value['pageId'] !== 'string' || value['pageId'].trim().length === 0) return false;
@@ -3086,6 +3091,77 @@ export const isPageConfigPayload = (value: unknown): value is TPageConfigPayload
     return true;
 };
 
+const CATALOG_KEYS = new Set(['entries']);
+const CATALOG_ENTRY_KEYS = new Set([
+    'entryId', 'kind', 'path', 'title', 'description', 'imageUrl', 'imageAlt', 'enabled', 'category', 'builtWith',
+]);
+const CATALOG_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*(?![\s\S])/;
+const CATALOG_PATH = /^(?!.*(?:^|\/)\.{1,2}(?:\/|$))\/(?:[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)*)?(?![\s\S])/;
+const CATALOG_IMAGE_URL = /^https:\/\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*)(?:\/[^\s\\?#\p{Cc}\p{Cf}\p{Cs}]*)?(?![\s\S])/u;
+const CATALOG_ASSET_HOST = 'assets.zoolandingpage.com.mx';
+
+const isCatalogSlug = (value: unknown, limit: number): boolean =>
+    typeof value === 'string' && value.length <= limit && CATALOG_SLUG.test(value);
+
+const fitsCatalogCodePoints = (value: string, limit: number): boolean =>
+    value.length <= limit || (value.length <= limit * 2 && Array.from(value).length <= limit);
+
+const isCatalogText = (value: unknown, limit: number): boolean =>
+    typeof value === 'string' && value.length > 0 && fitsCatalogCodePoints(value, limit)
+    && value === value.trim() && value === value.normalize('NFC') && !/[<>\p{Cc}\p{Cf}\p{Cs}]/u.test(value);
+
+const isCatalogImageUrl = (value: unknown, domain: string): boolean => {
+    if (typeof value !== 'string' || !fitsCatalogCodePoints(value, 1024)) return false;
+    const host = CATALOG_IMAGE_URL.exec(value)?.[1].toLowerCase();
+    if (host !== CATALOG_ASSET_HOST && host !== domain.toLowerCase()) return false;
+
+    // Check the raw authority and the parsed hostname. URL() can elide an explicit :443 port.
+    try {
+        return new URL(value).hostname === host;
+    } catch {
+        return false;
+    }
+};
+
+const isDraftCatalogEntry = (value: unknown, domain: string): value is TDraftCatalogEntry =>
+    isRecord(value) && hasOnlyKnownKeys(value, CATALOG_ENTRY_KEYS)
+    && isCatalogSlug(value['entryId'], 64)
+    && (value['kind'] === 'website' || value['kind'] === 'app')
+    && typeof value['path'] === 'string' && value['path'].length <= 256 && CATALOG_PATH.test(value['path'])
+    && isCatalogText(value['title'], 100)
+    && isCatalogText(value['description'], 320)
+    && isCatalogImageUrl(value['imageUrl'], domain)
+    && isCatalogText(value['imageAlt'], 200)
+    && typeof value['enabled'] === 'boolean'
+    && (value['category'] === undefined || isCatalogSlug(value['category'], 48))
+    && (value['builtWith'] === undefined || value['builtWith'] === 'zoolandingpage' || value['builtWith'] === 'zoositioweb');
+
+const isDraftCatalogConfig = (
+    value: unknown,
+    domain: string,
+    routes: readonly TDraftSiteRouteEntry[],
+    redirects: readonly TPublicRouteRedirect[] = [],
+): value is TDraftCatalogConfig => {
+    if (!isRecord(value) || !hasOnlyKnownKeys(value, CATALOG_KEYS)) return false;
+    const entries = value['entries'];
+    if (!Array.isArray(entries) || entries.length > 32) return false;
+
+    const routePaths = new Set(routes.map(route => route.path));
+    const protectedPaths = new Set(routes.filter(route => route.auth?.required === true)
+        .map(route => normalizeDraftRoutePath(route.path)));
+    const redirectSources = new Set(redirects.map(redirect => normalizeDraftRoutePath(redirect.from)));
+    const ids = new Set<string>();
+    const paths = new Set<string>();
+    for (const entry of entries) {
+        if (!isDraftCatalogEntry(entry, domain)) return false;
+        if (ids.has(entry.entryId) || paths.has(entry.path) || redirectSources.has(entry.path)) return false;
+        if (!routePaths.has(entry.path) || protectedPaths.has(entry.path)) return false;
+        ids.add(entry.entryId);
+        paths.add(entry.path);
+    }
+    return true;
+};
+
 export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteConfigPayload => {
     if (!isRecord(value)) return false;
     if (typeof value['version'] !== 'number') return false;
@@ -3094,13 +3170,16 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (value['environments'] !== undefined && !isDraftSiteEnvironmentMap(value['environments'])) return false;
     if (value['defaultPageId'] !== undefined && typeof value['defaultPageId'] !== 'string') return false;
     if (value['notFoundPageId'] !== undefined && typeof value['notFoundPageId'] !== 'string') return false;
-    if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
+    const routes = value['routes'];
+    if (!Array.isArray(routes) || !routes.every(isDraftSiteRouteEntry)) return false;
     if (value['lifecycle'] !== undefined && !isSiteLifecycleConfig(value['lifecycle'])) return false;
     if (value['runtime'] !== undefined && !isDraftSiteRuntimeConfig(value['runtime'])) return false;
     if (value['sitemap'] !== undefined && !isDraftSitemapConfig(value['sitemap'])) return false;
-    if (!isDraftSiteSharedConfig(value['site'])) return false;
-    const seo = (value['site'] as Record<string, unknown>)['seo'];
-    if (isRecord(seo) && seo['redirects'] !== undefined && !isPublicRouteRedirects(seo['redirects'], value['routes'] as unknown[])) return false;
+    const site = value['site'];
+    if (!isDraftSiteSharedConfig(site)) return false;
+    const redirects = site.seo?.redirects;
+    if (redirects !== undefined && !isPublicRouteRedirects(redirects, routes)) return false;
+    if (value['catalog'] !== undefined && !isDraftCatalogConfig(value['catalog'], value['domain'], routes, redirects)) return false;
     const supportedLanguages = new Set(
         (value['site'] as Record<string, unknown>)['i18n']
             && isRecord((value['site'] as Record<string, unknown>)['i18n'])
