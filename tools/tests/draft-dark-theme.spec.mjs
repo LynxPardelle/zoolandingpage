@@ -12,7 +12,6 @@ const readJson = (relativePath) => JSON.parse(readFileSync(join(fixturesDir, rel
 const zooSiteConfig = readJson('zoo-site-config.json');
 const zooVariables = readJson('zoo-variables.json');
 const alecfestSiteConfig = readJson('alecfest-site-config.json');
-const pamelaSiteConfig = readJson('pamela-site-config.json');
 const indexHtml = readFileSync(join(repoRoot, 'src', 'index.html'), 'utf8');
 
 const expectedZooDark = {
@@ -39,32 +38,6 @@ const expectedAlecfestDark = {
   secondaryTitleColor: '#fff8d6',
   secondaryLinkColor: '#c1ff69',
   secondaryAccentColor: '#394f13',
-};
-
-const expectedPamelaLight = {
-  bgColor: '#f4e7e1',
-  textColor: '#5b4d47',
-  titleColor: '#734332',
-  linkColor: '#734332',
-  accentColor: '#734332',
-  secondaryBgColor: '#dfc1b4',
-  secondaryTextColor: '#433733',
-  secondaryTitleColor: '#734332',
-  secondaryLinkColor: '#734332',
-  secondaryAccentColor: '#734332',
-};
-
-const expectedPamelaDark = {
-  bgColor: '#1f1917',
-  textColor: '#efe2db',
-  titleColor: '#f6d0bf',
-  linkColor: '#e2a27f',
-  accentColor: '#cf7f59',
-  secondaryBgColor: '#2b211e',
-  secondaryTextColor: '#e8d7cf',
-  secondaryTitleColor: '#f5c3aa',
-  secondaryLinkColor: '#e2a27f',
-  secondaryAccentColor: '#cf7f59',
 };
 
 function rgb(hex) {
@@ -107,11 +80,6 @@ function assertPalette(name, actual, expected) {
 test('dark draft palettes keep brand colors and readable contrast', () => {
   assertPalette('zoolandingpage.com.mx.dark', zooSiteConfig.site.theme.palettes.dark, expectedZooDark);
   assertPalette('alecfest-voliii.com.dark', alecfestSiteConfig.site.theme.palettes.dark, expectedAlecfestDark);
-  assertPalette('pamelabetancourt.com.dark', pamelaSiteConfig.site.theme.palettes.dark, expectedPamelaDark);
-});
-
-test('Pamela light palette keeps the Google Sites color anchor', () => {
-  assertPalette('pamelabetancourt.com.light', pamelaSiteConfig.site.theme.palettes.light, expectedPamelaLight);
 });
 
 test('Zoo boot curtain carries the requested product name and domain', () => {

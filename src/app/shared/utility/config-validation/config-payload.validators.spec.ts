@@ -82,6 +82,25 @@ const minimalSiteConfig = () => ({
 });
 
 describe('config-payload.validators', () => {
+    it('rejects unsafe, chained, duplicate and unregistered opt-in public route redirects', () => {
+        const config = (redirects: unknown) => ({
+            version: 1, domain: TEST_DOMAIN, defaultPageId: 'home',
+            routes: [{ path: '/', pageId: 'home' }, { path: '/sitios-web', pageId: 'web' }],
+            site: { ...minimalSiteConfig(), seo: { redirects } },
+        });
+        expect(isDraftSiteConfigPayload(config([{ from: '/landingpages', to: '/sitios-web', preserveQueryParams: ['q', 'categoria', 'lang'] }]))).toBeTrue();
+        for (const invalid of [
+            [{ from: '/old', to: 'https://outside.example/' }],
+            [{ from: '/old', to: '//outside.example' }],
+            [{ from: '/old', to: '/old/' }],
+            [{ from: '/old', to: '/missing' }],
+            [{ from: '/old', to: '/sitios-web', statusCode: 302 }],
+            [{ from: '/old', to: '/sitios-web', preserveQueryParams: ['draftPageId'] }],
+            [{ from: '/old', to: '/sitios-web', preserveQueryParams: ['q', 'q'] }],
+            [{ from: '/old', to: '/sitios-web' }, { from: '/old/', to: '/sitios-web' }],
+            [{ from: '/old', to: '/other' }, { from: '/other', to: '/sitios-web' }],
+        ]) expect(isDraftSiteConfigPayload(config(invalid))).withContext(JSON.stringify(invalid)).toBeFalse();
+    });
     it('validates optional container language without changing the existing focus and semantic contracts', () => {
         const payload = (config: Record<string, unknown>) => createComponentsPayload({
             main: { id: 'main', type: 'container', config: { tag: 'main', components: [], ...config } },
@@ -2330,6 +2349,120 @@ describe('config-payload.validators', () => {
             { path: '/campaign/en', pageId: 'campaign', language: 'en' },
             { path: '/campaign/english', pageId: 'campaign', language: 'en' },
         ]))).toBeFalse();
+    });
+
+    describe('public catalog', () => {
+        const website = {
+            entryId: 'sitio-1', kind: 'website', path: '/', title: 'Diseño y música',
+            description: 'Sitio para clases de música.', imageUrl: `https://${ TEST_DOMAIN }/cover.webp`,
+            imageAlt: 'Guitarra eléctrica', enabled: true,
+        };
+        const app = {
+            ...website, entryId: 'app-2', kind: 'app', path: '/app',
+            imageUrl: 'https://assets.zoolandingpage.com.mx/catalog/app.webp',
+            category: 'educacion-2', builtWith: 'zoositioweb', enabled: false,
+        };
+        const payload = () => ({
+            version: 1,
+            domain: TEST_DOMAIN,
+            aliases: ['alias.example.test'],
+            routes: [
+                { path: '/', pageId: 'home' },
+                { path: '/app', pageId: 'app', auth: { required: false } },
+                { path: '/private', pageId: 'private', auth: { required: true } },
+                { path: '/former-app', pageId: 'former-app' },
+            ],
+            site: {
+                ...minimalSiteConfig(),
+                seo: { redirects: [{ from: '/former-app/', to: '/app' }] },
+            },
+        });
+
+        it('accepts legacy drafts, an empty catalog, and both kinds of public entries', () => {
+            const base = payload();
+            expect(isDraftSiteConfigPayload(base)).toBeTrue();
+            expect(isDraftSiteConfigPayload({ ...base, catalog: { entries: [] } })).toBeTrue();
+            expect(isDraftSiteConfigPayload({ ...base, catalog: { entries: [website, app] } })).toBeTrue();
+            expect(isDraftSiteConfigPayload({ ...base, catalog: { entries: [{ ...website, title: '🎸'.repeat(100) }] } }))
+                .withContext('text limit counts Unicode code points').toBeTrue();
+        });
+
+        it('closes the catalog shape and allows at most 32 entries', () => {
+            const allEntries = Array.from({ length: 33 }, (_, index) => ({
+                ...website, entryId: `site-${ index }`, path: `/site-${ index }`,
+            }));
+            const base = {
+                ...payload(),
+                routes: allEntries.map(entry => ({ path: entry.path, pageId: entry.entryId })),
+                site: minimalSiteConfig(),
+            };
+            expect(isDraftSiteConfigPayload({ ...base, catalog: { entries: allEntries.slice(0, 32) } })).toBeTrue();
+            for (const catalog of [null, {}, [], { entries: 'invalid' }, { entries: allEntries },
+                { entries: [], unexpected: true }, { entries: [{ ...allEntries[0], unexpected: true }] }]) {
+                expect(isDraftSiteConfigPayload({ ...base, catalog })).withContext(JSON.stringify(catalog)).toBeFalse();
+            }
+        });
+
+        it('requires one unique ID and exact public non-redirected path per entry', () => {
+            const groups = [
+                [website, { ...app, entryId: website.entryId }],
+                [website, { ...app, path: website.path }],
+                [{ ...website, path: '/missing' }],
+                [{ ...website, path: '/private' }],
+                [{ ...website, path: '/former-app' }],
+            ];
+            for (const entries of groups) {
+                expect(isDraftSiteConfigPayload({ ...payload(), catalog: { entries } }))
+                    .withContext(JSON.stringify(entries)).toBeFalse();
+            }
+            const base = payload();
+            expect(isDraftSiteConfigPayload({
+                ...base,
+                routes: [{ path: '/%61pp/', pageId: 'hidden-app', auth: { required: true } }, ...base.routes],
+                catalog: { entries: [app] },
+            })).withContext('an equivalent protected route must block the entry').toBeFalse();
+            for (const path of ['/app/', '//app', '/a//b', '/a/./b', '/a/../b', '/%2e%2e', '/año', '/a?x=1', '/a#top', '/a\\b', `/a${ 'x'.repeat(255) }`]) {
+                // Register the exact path so route existence cannot account for this rejection.
+                const base = { ...payload(), site: minimalSiteConfig(), routes: [{ path, pageId: 'app' }] };
+                expect(isDraftSiteConfigPayload({ ...base, catalog: { entries: [{ ...website, path }] } }))
+                    .withContext(path).toBeFalse();
+            }
+        });
+
+        it('rejects missing required fields and invalid public card values', () => {
+            for (const field of Object.keys(website)) {
+                const entry: Record<string, unknown> = { ...website };
+                delete entry[field];
+                expect(isDraftSiteConfigPayload({ ...payload(), catalog: { entries: [entry] } }))
+                    .withContext(`missing ${ field }`).toBeFalse();
+            }
+
+            const invalidFields: Record<string, unknown[]> = {
+                entryId: ['UPPER', 'next--site', 'next_site', '-next', 'next-', 'x'.repeat(65)],
+                kind: ['site', 'product'],
+                title: ['', ' Padded', 'Padded ', '<b>Title</b>', 'Title\nNext', 'Cafe\u0301', 'Título\u202e', 'x'.repeat(101)],
+                description: ['<span>Description</span>', 'first\u0000last', 'x'.repeat(321)],
+                imageAlt: ['White\u007fbackground', 'x'.repeat(201)],
+                category: ['Categoría', 'a--b', 'x'.repeat(49)],
+                builtWith: ['unknown', 'ZooSitioWeb'],
+                enabled: [0, 'true'],
+                imageUrl: [
+                    '//assets.zoolandingpage.com.mx/cover.webp', `http://${ TEST_DOMAIN }/cover.webp`,
+                    `https://user@${ TEST_DOMAIN }/cover.webp`, `https://${ TEST_DOMAIN }:443/cover.webp`,
+                    `https://${ TEST_DOMAIN }/cover.webp?x=1`, `https://${ TEST_DOMAIN }/cover.webp#top`,
+                    `https://${ TEST_DOMAIN }/a\\cover.webp`, `https://${ TEST_DOMAIN }/cover.webp\n`,
+                    `https://${ TEST_DOMAIN }/cover\u202e.webp`, `https://${ TEST_DOMAIN }/cover\ud800.webp`,
+                    'https://alias.example.test/cover.webp', 'https://other.example.test/cover.webp',
+                    `https://${ TEST_DOMAIN }/${ 'x'.repeat(1024) }`,
+                ],
+            };
+            for (const [field, values] of Object.entries(invalidFields)) {
+                for (const value of values) {
+                    expect(isDraftSiteConfigPayload({ ...payload(), catalog: { entries: [{ ...website, [field]: value }] } }))
+                        .withContext(`${ field }=${ JSON.stringify(value) }`).toBeFalse();
+                }
+            }
+        });
     });
 
     it('validates components payloads', () => {

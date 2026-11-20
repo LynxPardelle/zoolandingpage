@@ -69,6 +69,7 @@ export class RuntimeService {
     private cssMutationObserver: MutationObserver | null = null;
     private navigationUnlisten: (() => void) | null = null;
     private pendingBrowserNavigationHref: string | null = null;
+    private pendingBrowserNavigationReplace = false;
     private currentLanguageResolver: (() => string) | null = null;
     private showDebugWorkspaceResolver: (() => boolean) | null = null;
     private renderedClassesRoot: HTMLElement | null = null;
@@ -330,6 +331,11 @@ export class RuntimeService {
         let keepPrivateRouteLoading = false;
         try {
             const context = await this.draftRuntime.resolveActiveDraftContext();
+            if (initializeId !== this.initializeId) return;
+            if (context.publicRedirect) {
+                if (this.isBrowser) this.navigateWhenBrowserShellReady(context.publicRedirect, true);
+                return;
+            }
             if (!await this.articleDesk.prepareNavigation(context)) return;
             if (initializeId !== this.initializeId) return;
             if (!context.domain || !context.pageId) {
@@ -1056,13 +1062,15 @@ export class RuntimeService {
         this.navigationUnlisten = () => window.removeEventListener('popstate', handleNavigation);
     }
 
-    private navigateWhenBrowserShellReady(href: string): void {
+    private navigateWhenBrowserShellReady(href: string, replace = false): void {
         if (!this.navigationUnlisten) {
             this.pendingBrowserNavigationHref = href;
+            this.pendingBrowserNavigationReplace = replace;
             return;
         }
 
         navigateInCurrentWindow(href, {
+            replace,
             scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
         });
     }
@@ -1075,6 +1083,7 @@ export class RuntimeService {
 
         this.pendingBrowserNavigationHref = null;
         navigateInCurrentWindow(href, {
+            replace: this.pendingBrowserNavigationReplace,
             scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
         });
     }

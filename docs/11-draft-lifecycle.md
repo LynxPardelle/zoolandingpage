@@ -252,6 +252,14 @@ This unsigned local command is legacy documentation. The deployed authoring API 
 
 If the custom-domain authoring endpoint resets the connection or stalls, the CLI now retries automatically through the raw API Gateway endpoint for the standard Zoolanding authoring URL. Use `--fallback-endpoint=https://...` if you need to force a different retry target, `--retry-attempts=3` to allow additional attempts on retryable failures, `--retry-delay-ms=250` to control the pause between attempts, or point directly at the raw endpoint documented in [06-deployment.md](06-deployment.md).
 
+## Production analytics default
+
+Enable analytics explicitly in the authored site configuration before publishing a draft to production, unless the user explicitly requests an exception. Set `runtime.analytics.enabled` to `true` in `site-config.json` and verify that the effective merged site/page configuration remains enabled on the published routes.
+
+Keep the site's appropriate consent behavior and minimize optional tracking fields. Enabling analytics does not mean enabling every enrichment option; follow the existing [production readiness and data-minimization rules](../ai-notes/constraints/production-readiness-and-quality-gates.md).
+
+Verify the published runtime configuration and confirm that an intended event reaches the analytics receiver. For campaign launches, also verify the expected non-sensitive `source` and `campaign` entries in the event's ordered [`queryParams` array](./08-analytics-centralization.md#12-url-query-tags). Check the live browser separately so stale SSR or frontend caches cannot leave the previous disabled configuration in use. Record any explicitly requested disabled exception in the release readiness note.
+
 ## Recommended workflows
 
 ### Update an existing site
@@ -263,7 +271,7 @@ If the custom-domain authoring endpoint resets the connection or stalls, the CLI
 5. Commit to the draft repo `dev` branch.
 6. Merge `dev -> test` by PR; the `test` branch deploys the test environment after merge.
 7. Verify every configured test alias.
-8. Merge `test -> main` by PR; the `main` branch deploys production after merge.
+8. Confirm the [production analytics default](#production-analytics-default), then merge `test -> main` by PR; the `main` branch deploys production after merge.
 9. Validate the runtime bundle and the live site separately.
 10. Record durable learnings in the canonical AI notes.
 
@@ -274,7 +282,7 @@ If the custom-domain authoring endpoint resets the connection or stalls, the CLI
 3. Preview locally.
 4. Upload any required public assets.
 5. Create the site in the authoring API.
-6. Publish it.
+6. Confirm the [production analytics default](#production-analytics-default), then publish it.
 7. Run upload status against `--stage=published`.
 8. Validate the runtime bundle and then validate the live site.
 9. Distill reusable guidance from the new draft into `ai-notes/`.

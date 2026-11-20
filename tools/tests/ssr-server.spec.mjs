@@ -6,12 +6,14 @@ import { createServer as createHttpServer } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
+import { createThnJournalSiteConfig } from './fixtures/thn-journal-ssr.mjs';
+import { createZoositeContentHubFixture } from './fixtures/zoosite-content-hub-ssr.mjs';
 
 const repoRoot = resolve(import.meta.dirname, '../..');
 const serverEntry = resolve(repoRoot, 'dist/zoolandingpage/server/server.mjs');
 
 test('THN strict Journal SSR preserves locale SEO, hydration ownership, empty series and private boundaries', async t=>{
-  const site=JSON.parse(readFileSync(join(repoRoot,'drafts/thehairnarrative.com/site-config.json'),'utf8'));
+  const site=createThnJournalSiteConfig();
   const article={articleId:'fixture-es',locale:'es',status:'published',visibility:'public',title:'Una forma de mirar',summary:'Una nota editorial.',
     path:'/the-journal/formas-nupciales/una-forma',categorySlug:'formas-nupciales',publishedAt:'2026-09-01T12:00:00Z',
     imageSrc:'/features/content-hub-v2/public-media/fixture-es/es/revision/cover/w1200',imageAlt:'Cabello'};
@@ -374,6 +376,57 @@ async function startNotFoundRecoveryFixture(t) {
   return { ...server, domain, siteConfig };
 }
 
+test('production SSR emits opt-in permanent route redirects with safe preview context', async (t) => {
+  const domain = 'route-migration.example.test';
+  const siteConfig = {
+    version: 1, domain, defaultPageId: 'default', notFoundPageId: 'not-found',
+    routes: [{ path: '/', pageId: 'default' }, { path: '/sitios-web', pageId: 'default' }, { path: '/404', pageId: 'not-found' }],
+    site: {
+      appIdentity: { identifier: 'redirect-fixture', name: 'Route migration fixture' },
+      theme: JSON.parse(readFileSync(join(repoRoot, 'tools/tests/fixtures/zoo-site-config.json'), 'utf8')).site.theme,
+      i18n: { defaultLanguage: 'es', supportedLanguages: ['es'] },
+      seo: { canonicalOrigin: `https://${domain}`, redirects: [{ from: '/landingpages', to: '/sitios-web', preserveQueryParams: ['q', 'categoria', 'lang'] }] },
+    },
+  };
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url, 'http://127.0.0.1');
+    res.writeHead(200, { 'content-type': 'application/json' });
+    if (url.pathname === '/site-config') { res.end(JSON.stringify(siteConfig)); return; }
+    const path = url.searchParams.get('path') || '/';
+    const notFound = !['/', '/sitios-web'].includes(path), pageId = notFound ? 'not-found' : 'default';
+    const identity = { version: 1, domain, pageId };
+    res.end(JSON.stringify({ ...identity, siteConfig, lang: 'es', sourceStage: 'published',
+      route: { path, pageId }, pageConfig: { ...identity, rootIds: ['title'] },
+      components: { ...identity, components: [{ id: 'title', type: 'text', config: { tag: 'h1', text: 'Route migration fixture' } }] },
+      variables: { ...identity, variables: {} }, i18n: { ...identity, lang: 'es', dictionary: {} },
+      metadata: { statusCode: notFound ? 404 : 200, notFound },
+    }));
+  });
+  const { port } = await startProductionServer(t, { CONFIG_API_URL: apiBase, CONFIG_API_SERVER_FALLBACK_URL: '', ZLP_RUNTIME_ENV: 'test' });
+  const cases = [
+    [domain, '/landingpages', '/sitios-web'],
+    [domain, '/landingpages/?q=guitarra&categoria=cursos&discard=1', '/sitios-web?q=guitarra&categoria=cursos'],
+    [domain, `/landingpages?draftDomain=${domain}&debugWorkspace=false&draftPageId=old&lang=es`, '/sitios-web?lang=es'],
+    ['test.zoolandingpage.com.mx', `/landingpages?draftDomain=${domain}&debugWorkspace=false&draftPageId=old&q=guitarra`, `/sitios-web?q=guitarra&draftDomain=${domain}&debugWorkspace=false`],
+  ];
+  for (const [host, path, expected] of cases) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+        method, redirect: 'manual', headers: { Host: host, 'X-Forwarded-Host': host, 'X-Forwarded-Proto': 'https' },
+      });
+      assert.equal(response.status, 301, `${method} ${host}${path}`);
+      assert.equal(response.headers.get('location'), expected);
+    }
+  }
+  for (const path of ['/landingpages-extra', '/other/landingpages']) {
+    const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+      redirect: 'manual', headers: { Host: domain, 'X-Forwarded-Host': domain, 'X-Forwarded-Proto': 'https' },
+    });
+    assert.equal(response.status, 404);
+    assert.equal(response.headers.get('location'), null);
+  }
+});
+
 test('production SSR not-found recovery retains validated preview context and reaches home', async (t) => {
   const { port, domain, getStderr } = await startNotFoundRecoveryFixture(t);
   for (const host of ['127.0.0.1', 'test.zoolandingpage.com.mx']) {
@@ -491,7 +544,7 @@ test('production SSR not-found recovery CTA and status label use readable neutra
     orangeLight: { bgColor: '#F7F0E3', secondaryBgColor: '#E3D1B5', textColor: '#244737', accentColor: '#ED8B00', onSuccessColor: '#F7F0E3' },
     orangeDark: { bgColor: '#10231B', secondaryBgColor: '#193629', textColor: '#F7F0E3', accentColor: '#ED8B00', onSuccessColor: '#F7F0E3' },
   };
-  for (const fixtureDomain of ['grupoastralegal.com', 'zoolandingpage.com.mx', 'pamelabetancourt.com']) {
+  for (const fixtureDomain of ['grupoastralegal.com', 'zoolandingpage.com.mx']) {
     const config = JSON.parse(readFileSync(join(repoRoot, 'drafts', fixtureDomain, 'site-config.json'), 'utf8'));
     for (const [mode, palette] of Object.entries(config.site.theme.palettes)) {
       fixturePalettes[`${fixtureDomain}.${mode}`] = palette;
@@ -1084,32 +1137,10 @@ test('production SSR server redirects primary canonical hosts from proxy-forward
 });
 
 test('production SSR exposes Zoosite content hub SEO sitemap feed and search', async (t) => {
-  const localSiteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8'));
-  const localBlogPageConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'page-config.json'), 'utf8'));
-  const localSharedComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'components.json'), 'utf8'));
-  const localBlogPageComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'components.json'), 'utf8'));
-  const localBlogComponents = {
-    ...localBlogPageComponents,
-    components: [
-      ...(localSharedComponents.components ?? []),
-      ...(localBlogPageComponents.components ?? []),
-    ],
-  };
-  const localBlogVariables = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'variables.json'), 'utf8'));
-  const localBlogCombos = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'angora-combos.json'), 'utf8'));
-  const localBlogI18n = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'i18n', 'es.json'), 'utf8'));
-  const localNotFoundPageConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'page-config.json'), 'utf8'));
-  const localNotFoundPageComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'components.json'), 'utf8'));
-  const localNotFoundComponents = {
-    ...localNotFoundPageComponents,
-    components: [
-      ...(localSharedComponents.components ?? []),
-      ...(localNotFoundPageComponents.components ?? []),
-    ],
-  };
-  const localNotFoundVariables = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'variables.json'), 'utf8'));
-  const localNotFoundCombos = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'angora-combos.json'), 'utf8'));
-  const localNotFoundI18n = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'i18n', 'es.json'), 'utf8'));
+  const {
+    localSiteConfig, localBlogPageConfig, localBlogComponents, localBlogVariables, localBlogCombos, localBlogI18n,
+    localNotFoundPageConfig, localNotFoundComponents, localNotFoundVariables, localNotFoundCombos, localNotFoundI18n,
+  } = createZoositeContentHubFixture();
   const runtimeSiteConfig = JSON.parse(JSON.stringify(localSiteConfig));
   runtimeSiteConfig.runtime.contentHubs[0].publicArticles = {
     items: [
@@ -1194,6 +1225,14 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
     ],
   };
   runtimeSiteConfig.runtime.contentHubs = runtimeSiteConfig.runtime.contentHubs[0];
+  assert.ok(runtimeSiteConfig.runtime.contentHubs.publicArticles.items
+    .some(article => article.path === '/blog/web/privado-no-publicable' && article.visibility === 'private'));
+  const browserSiteConfig = structuredClone(runtimeSiteConfig);
+  const browserHub = browserSiteConfig.runtime.contentHubs;
+  browserHub.publicArticles.items = browserHub.publicArticles.items
+    .filter(article => article.status === 'published' && (!article.visibility || article.visibility === 'public'));
+  browserSiteConfig.runtime.contentHubs = [browserHub];
+  let mockSiteConfig = runtimeSiteConfig;
   const runtimeBundleRequests = [];
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
@@ -1219,7 +1258,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
           pageId: 'not-found',
           sourceStage: 'published',
           lang,
-          siteConfig: runtimeSiteConfig,
+          siteConfig: mockSiteConfig,
           route: { path: '/404', pageId: 'not-found' },
           pageConfig: localNotFoundPageConfig,
           components: localNotFoundComponents,
@@ -1234,8 +1273,20 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
         return;
       }
 
-      const pageId = url.searchParams.get('pageId') || 'contentHubArticle';
-      const pageConfig = pageId === 'blog'
+      const pageId = url.searchParams.get('pageId')
+        || (path === '/blog' ? 'blog' : path === '/blogs' ? 'blogs' : 'contentHubArticle');
+      const pageConfig = pageId === 'blogs'
+        ? {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          rootIds: [],
+          seo: {
+            title: 'Blogs para atraer clientes con contenido medible | zoositioweb',
+            canonical: 'https://zoositioweb.com.mx/blogs',
+          },
+        }
+        : pageId === 'blog'
         ? localBlogPageConfig
         : pageId === 'blog-category'
         ? {
@@ -1300,7 +1351,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
         pageId,
         sourceStage: 'published',
         lang,
-        siteConfig: runtimeSiteConfig,
+        siteConfig: mockSiteConfig,
         pageConfig,
         components,
         variables,
@@ -1320,7 +1371,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: false }));
   });
-  const { port, getStderr } = await startProductionServer(t, {
+  let { port, getStderr } = await startProductionServer(t, {
     CONFIG_API_SERVER_FALLBACK_URL: '',
     CONFIG_API_URL: apiBase,
   });
@@ -1399,6 +1450,16 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(slugSearch.articles[0].path, '/blog/web/blog-builder-seo');
   assertNoContentHubOperationalLeak(JSON.stringify(slugSearch));
 
+  // The SSR index accepts legacy object/collection shapes and filters the private
+  // canary above. Render bundles follow the browser contract: an array of hubs
+  // with only public records. A fresh server prevents its index cache crossing phases.
+  assert.equal(getStderr(), '');
+  mockSiteConfig = browserSiteConfig;
+  ({ port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  }));
+
   const blogIndexResponse = await fetch(`http://127.0.0.1:${port}/blog?lang=es`, { headers });
   const blogIndexHtml = await blogIndexResponse.text();
   const blogIndexVisibleHtml = stripNonVisibleHtml(blogIndexHtml);
@@ -1428,6 +1489,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   );
   const blogPreviewHtml = await blogPreviewResponse.text();
   assert.equal(blogPreviewResponse.status, 200);
+  assert.match(blogPreviewHtml, /href="\/blog\/web\/blog-builder-seo\?draftDomain=zoositioweb\.com\.mx/);
   assert.doesNotMatch(blogPreviewHtml, /href="\/blog\/web\/blog-builder-seo(?!\?draftDomain=zoositioweb\.com\.mx)/);
   assert.doesNotMatch(blogPreviewHtml, /privado-no-publicable/);
 
@@ -2143,25 +2205,6 @@ test('shared preview uses owner SEO for copies and sends crawler-readable noinde
   const productionHome = await get('/', domain);
   assert.equal(productionHome.headers.get('x-robots-tag'), null);
   assert.match(await productionHome.text(), /<meta name="robots" content="index,follow">/);
-});
-
-test('production SSR server renders draft routes on aliased hosts', async (t) => {
-  const { port, getStderr } = await startProductionServer(t);
-  const response = await fetch(`http://127.0.0.1:${port}/home`, {
-    headers: {
-      Host: 'pamelabetancourt.zoolandingpage.com.mx',
-      'X-Forwarded-Host': 'pamelabetancourt.zoolandingpage.com.mx',
-      'X-Forwarded-Port': '443',
-      'X-Forwarded-Proto': 'https',
-      'X-Forwarded-Server': 'dokploy-traefik',
-    },
-  });
-  const body = await response.text();
-
-  assert.equal(response.status, 200);
-  assert.match(body, /Pamela Betancourt/i);
-  assert.doesNotMatch(body, /Cannot GET \/home/i);
-  assert.equal(getStderr(), '');
 });
 
 test('production SSR server renders a published canonical custom host from local config', async (t) => {

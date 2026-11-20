@@ -6,6 +6,7 @@ import { isMissingPublishedContentHubPublicPath } from '../utility/content-hub/c
 import { isFixedJournal } from '../utility/content-hub/fixed-journal-public';
 import { parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
 import { matchDraftRoute, normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
+import { resolvePublicRouteRedirect } from '../utility/route-matching/public-route-redirect';
 import type { TComponentsPayload, TDraftSiteConfigPayload, TDraftSiteRouteEntry, TPageConfigPayload } from '../types/config-payloads.types';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService } from './config-store.service';
@@ -33,6 +34,7 @@ export type TResolvedDraftContext = {
     readonly routeParams?: Readonly<Record<string, string>>;
     readonly explicitPageId: boolean;
     readonly notFound?: boolean;
+    readonly publicRedirect?: string;
 };
 
 type TNotFoundResolution = {
@@ -214,6 +216,21 @@ export class DraftRuntimeService {
             path,
             lang: this.resolveRequestedLanguage(),
         });
+        const requestUrl = this.isBrowser && typeof window !== 'undefined'
+            ? new URL(window.location.href) : this.parseRequestUrl();
+        const publicRedirect = requestUrl ? resolvePublicRouteRedirect(siteConfig, requestUrl.href, {
+            allowDraftPreview: this.domainResolver.canUseDraftQueryParamsOnHost(requestUrl.hostname),
+        }) : null;
+        if (publicRedirect) {
+            const destination = this.matchRouteWithParams(siteConfig, new URL(publicRedirect, requestUrl!).pathname);
+            const redirectedContext = {
+                domain, pageId: destination!.route.pageId, path, route: destination!.route,
+                explicitPageId: false, publicRedirect,
+            } satisfies TResolvedDraftContext;
+            this.configStore.setSiteConfig(siteConfig);
+            this.applyResolvedContext(redirectedContext);
+            return redirectedContext;
+        }
         const routeMatch = this.matchRouteWithParams(siteConfig, path);
 
         if (explicitPageId) {

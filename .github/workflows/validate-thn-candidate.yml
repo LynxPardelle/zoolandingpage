@@ -55,13 +55,6 @@ jobs:
           ref: 9865bd276317b6b808027bce919970695c759a68
           path: drafts/zoolandingpage.com.mx
           persist-credentials: false
-      - name: Check out reviewed QA fixture pamelabetancourt.com
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
-        with:
-          repository: LynxPardelle/draft-pamelabetancourt-com
-          ref: 47e95f5e2a0631a5c9af3129a67d640810535430
-          path: drafts/pamelabetancourt.com
-          persist-credentials: false
       - name: Check out reviewed QA fixture zoositioweb.com.mx
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:

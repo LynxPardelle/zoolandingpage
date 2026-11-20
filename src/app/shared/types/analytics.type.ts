@@ -40,12 +40,19 @@ export type TTrackOptions =
     | 'battery'
     | 'connection';
 
+export type TAnalyticsQueryParam = {
+    readonly key: string;
+    readonly value: string;
+};
+
 export type TAnalyticsEvent = {
     readonly name: string;
     readonly category?: string;
     readonly label?: string;
     readonly value?: number;
     readonly meta?: Record<string, unknown>;
+    /** Current URL query snapshot, populated centrally by AnalyticsService. */
+    readonly queryParams?: readonly TAnalyticsQueryParam[];
     readonly timestamp: number;
 };
 
