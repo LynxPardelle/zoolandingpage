@@ -163,7 +163,15 @@ This project now treats footer, legal modal, accessibility, and debug-panel cont
           "secondaryTextColor": "#19363f",
           "secondaryTitleColor": "#163038",
           "secondaryLinkColor": "#c33361",
-          "secondaryAccentColor": "#199f96"
+          "secondaryAccentColor": "#199f96",
+          "successColor": "#198754",
+          "onSuccessColor": "#ffffff",
+          "errorColor": "#dc3545",
+          "onErrorColor": "#ffffff",
+          "warningColor": "#f5b942",
+          "onWarningColor": "#1a1a1a",
+          "infoColor": "#0d6efd",
+          "onInfoColor": "#ffffff"
         },
         "dark": {
           "bgColor": "#1a1a1a",
@@ -175,7 +183,15 @@ This project now treats footer, legal modal, accessibility, and debug-panel cont
           "secondaryTextColor": "#d9dcdf",
           "secondaryTitleColor": "#6cc3e6",
           "secondaryLinkColor": "#30a464",
-          "secondaryAccentColor": "#20673c"
+          "secondaryAccentColor": "#20673c",
+          "successColor": "#32d583",
+          "onSuccessColor": "#052e1c",
+          "errorColor": "#ff6b6b",
+          "onErrorColor": "#3b0a0a",
+          "warningColor": "#f5b942",
+          "onWarningColor": "#1a1a1a",
+          "infoColor": "#58a6ff",
+          "onInfoColor": "#10131a"
         }
       },
       "ui": {

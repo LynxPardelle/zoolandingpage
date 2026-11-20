@@ -1,9 +1,96 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import Ajv from 'ajv';
+import ts from 'typescript';
+import { createThnJournalSiteConfig } from './fixtures/thn-journal-ssr.mjs';
+import { createZoositeContentHubFixture } from './fixtures/zoosite-content-hub-ssr.mjs';
 
 const schemaPath = new URL('../../docs/api-driven-config/schemas/site-config.schema.json', import.meta.url);
 const zoositePilotFixturePath = new URL('./fixtures/zoosite-auth-pilot/site-config.json', import.meta.url);
+
+// Read the runtime's leaf contract without copying its color names into the test.
+const themeSource = await readFile(new URL('../../src/app/shared/types/theme.types.ts', import.meta.url), 'utf8');
+const themeJavascript = ts.transpileModule(themeSource, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+}).outputText;
+const { THEME_COLOR_KEYS } = await import(`data:text/javascript;base64,${Buffer.from(themeJavascript).toString('base64')}`);
+
+for (const schemaName of ['site-config', 'variables']) {
+    const schema = JSON.parse(await readFile(
+        new URL(`../../docs/api-driven-config/schemas/${schemaName}.schema.json`, import.meta.url), 'utf8'));
+    const { themeColors, themeConfig, themeUi } = schema.definitions;
+    const validateTheme = new Ajv({ allErrors: true }).compile({
+        $ref: '#/definitions/themeConfig',
+        definitions: { themeConfig, themeColors, themeUi },
+    });
+    const makeTheme = () => ({ palettes: {
+        light: Object.fromEntries(THEME_COLOR_KEYS.map(key => [key, '#ffffff'])),
+        dark: Object.fromEntries(THEME_COLOR_KEYS.map(key => [key, '#111111'])),
+    } });
+
+    test(`${schemaName} palette schema requires exactly the runtime color vocabulary`, () => {
+        assert.deepEqual(Object.keys(themeColors.properties).sort(), [...THEME_COLOR_KEYS].sort());
+        assert.deepEqual([...themeColors.required].sort(), [...THEME_COLOR_KEYS].sort());
+        assert.equal(themeColors.additionalProperties, false);
+    });
+
+    test(`${schemaName} schema accepts complete runtime SSR themes in both palettes`, () => {
+        for (const theme of [makeTheme(), createThnJournalSiteConfig().site.theme,
+            createZoositeContentHubFixture().localSiteConfig.site.theme]) {
+            assert.equal(validateTheme(theme), true, JSON.stringify(validateTheme.errors));
+        }
+    });
+
+    test(`${schemaName} schema rejects every missing or non-string runtime color`, () => {
+        for (const mode of ['light', 'dark']) {
+            for (const key of THEME_COLOR_KEYS) {
+                const missing = makeTheme();
+                delete missing.palettes[mode][key];
+                assert.equal(validateTheme(missing), false, `${mode}.${key} is required`);
+                assert.ok(validateTheme.errors.some(error => error.keyword === 'required'
+                    && error.instancePath === `/palettes/${mode}` && error.params.missingProperty === key));
+                for (const value of [null, 42, false, {}, []]) {
+                    const invalid = makeTheme();
+                    invalid.palettes[mode][key] = value;
+                    assert.equal(validateTheme(invalid), false, `${mode}.${key} must be a string`);
+                    assert.ok(validateTheme.errors.some(error => error.keyword === 'type'
+                        && error.instancePath === `/palettes/${mode}/${key}`));
+                }
+            }
+        }
+    });
+
+    test(`${schemaName} schema retains closed palettes and both required modes`, () => {
+        for (const mode of ['light', 'dark']) {
+            const extra = makeTheme();
+            extra.palettes[mode].unknownColor = '#123456';
+            assert.equal(validateTheme(extra), false);
+            const missing = makeTheme();
+            delete missing.palettes[mode];
+            assert.equal(validateTheme(missing), false);
+        }
+    });
+}
+
+test('the documented theme example satisfies both JSON theme contracts', async () => {
+    const markdown = await readFile(new URL('../../docs/api-driven-config/07-example-landing-config.md', import.meta.url), 'utf8');
+    const section = markdown.slice(markdown.indexOf('### Variables payload'));
+    const example = JSON.parse(section.match(/```json\s*([\s\S]*?)```/)[1]);
+    for (const schemaName of ['site-config', 'variables']) {
+        const schema = JSON.parse(await readFile(
+            new URL(`../../docs/api-driven-config/schemas/${schemaName}.schema.json`, import.meta.url), 'utf8'));
+        const { themeColors, themeConfig, themeUi } = schema.definitions;
+        const validate = new Ajv().compile({ $ref: '#/definitions/themeConfig', definitions: { themeColors, themeConfig, themeUi } });
+        assert.equal(validate(example.variables.theme), true, `${schemaName}: ${JSON.stringify(validate.errors)}`);
+    }
+});
+
+test('variables without an override theme remain valid', async () => {
+    const schema = JSON.parse(await readFile(new URL('../../docs/api-driven-config/schemas/variables.schema.json', import.meta.url), 'utf8'));
+    const validate = new Ajv().compile(schema);
+    assert.equal(validate({ version: 1, domain: 'theme-fixture.example', pageId: 'default', variables: {} }), true);
+});
 
 test('site SEO route redirects are an optional bounded closed same-origin contract', async () => {
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
