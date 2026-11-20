@@ -106,6 +106,59 @@ test('site SEO route redirects are an optional bounded closed same-origin contra
     for (const invalid of ['https://outside.example/', '//outside.example', '/old/../new', '/%2foutside', '/old?x=1', '/old#top', '/a\\b']) assert.equal(path.test(invalid), false, invalid);
 });
 
+test('site-config declares the optional bounded public catalog at the root', async () => {
+    const schema = await readJson(schemaPath);
+    const resolve = (property) => property.$ref ? schema.definitions[property.$ref.split('/').at(-1)] : property;
+
+    assert.ok(schema.properties.catalog, 'The authored public catalog must be a site-config root property');
+    assert.equal(schema.required.includes('catalog'), false);
+    const catalog = resolve(schema.properties.catalog);
+    assert.equal(catalog.type, 'object');
+    assert.equal(catalog.additionalProperties, false);
+    assert.deepEqual(catalog.required, ['entries']);
+    assert.deepEqual(Object.keys(catalog.properties), ['entries']);
+
+    const entries = resolve(catalog.properties.entries);
+    assert.equal(entries.type, 'array');
+    assert.equal(entries.maxItems, 32);
+    assert.ok((entries.minItems ?? 0) === 0, 'An empty catalog can retire every entry');
+
+    const entry = resolve(entries.items);
+    assert.equal(entry.type, 'object');
+    assert.equal(entry.additionalProperties, false);
+    const required = ['entryId', 'kind', 'path', 'title', 'description', 'imageUrl', 'imageAlt', 'enabled'];
+    assert.deepEqual([...entry.required].sort(), required.sort());
+    assert.deepEqual(Object.keys(entry.properties).sort(), [...required, 'category', 'builtWith'].sort());
+    assert.deepEqual([...resolve(entry.properties.kind).enum].sort(), ['app', 'website']);
+    assert.deepEqual([...resolve(entry.properties.builtWith).enum].sort(), ['zoolandingpage', 'zoositioweb']);
+    assert.equal(resolve(entry.properties.enabled).type, 'boolean');
+
+    for (const [name, max] of Object.entries({
+        entryId: 64, category: 48, path: 256, title: 100, description: 320, imageAlt: 200, imageUrl: 1024,
+    })) {
+        const field = resolve(entry.properties[name]);
+        assert.equal(field.type, 'string', name);
+        assert.equal(field.maxLength, max, name);
+    }
+
+    const pathPattern = new RegExp(resolve(entry.properties.path).pattern);
+    for (const valid of ['/', '/sitios-web', '/en/A-1._~']) assert.match(valid, pathPattern);
+    for (const invalid of [
+        'sitios-web', '/sitios-web/', '//example.test', '/x//y', '/x/./y', '/x/../y',
+        '/x/%2e%2e', '/x?draft=1', '/x#top', '/x\\y', '/x\n', '/año',
+    ]) assert.doesNotMatch(invalid, pathPattern);
+
+    const imagePattern = new RegExp(resolve(entry.properties.imageUrl).pattern);
+    assert.match('https://assets.zoolandingpage.com.mx/catalog/cover.webp', imagePattern);
+    assert.match('https://preview.example.test/catalog/cover.webp', imagePattern);
+    for (const invalid of [
+        '//preview.example.test/cover.webp', 'http://preview.example.test/cover.webp',
+        'https://user@preview.example.test/cover.webp', 'https://preview.example.test:443/cover.webp',
+        'https://preview.example.test/cover.webp?x=1', 'https://preview.example.test/cover.webp#top',
+        'https://preview.example.test/cover.webp\n', 'https://preview.example.test/a\\cover.webp',
+    ]) assert.doesNotMatch(invalid, imagePattern);
+});
+
 test('content hub locale policy is a closed optional opt-in with no global default', async () => {
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
     const publicSchema = JSON.parse(await readFile(

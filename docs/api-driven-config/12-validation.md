@@ -12,6 +12,16 @@ Primary validator file:
 
 If a payload fails validation, it is ignored and the bootstrap continues with the next stage.
 
+## Public catalog entries
+
+`site-config.json.catalog` is optional. When present, it contains only `entries`, an array of up to 32 cards for that source. An empty array is valid.
+
+Each card requires `entryId`, `kind`, `path`, `title`, `description`, `imageUrl`, `imageAlt`, and `enabled`. Use `website` or `app` for `kind`, and a JSON boolean for `enabled`. The optional `category` uses the same lowercase slug syntax as `entryId`. Optional `builtWith` is `zoolandingpage` or `zoositioweb`.
+
+Keep IDs and paths unique within the source. Each path must match an explicitly registered public static route, either `/` or ASCII path segments without dot segments or a trailing slash. Auth-required routes and redirect sources cannot be catalog entries. Both enabled and disabled entries use the same validation.
+
+Use nonempty, trimmed NFC plain text for the title, description, and image alt text. Write the image as an HTTPS URL on the source's canonical domain or `assets.zoolandingpage.com.mx`, without credentials, a port, a query, or a fragment. The [site-config schema](schemas/site-config.schema.json) records field size and syntax limits. The payload validator checks source identity, routes, and redirects.
+
 ## Common Issues
 
 ### Missing root components
