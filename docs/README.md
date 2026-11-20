@@ -11,6 +11,7 @@ Use this page as the shared start-here index for developers and agents. Open onl
 - [Development guide](./03-development-guide.md): day-to-day Angular development.
 - [Architecture](./02-architecture.md): frontend, runtime configuration, and service boundaries.
 - [Repository map](./repository-map.md): which Zoolanding repository owns each cross-repository responsibility.
+- [Shared GitHub write access](./repository-write-access.md): required accounts and effective write-access verification for every existing and new project repository.
 - [Draft registry](./drafts-registry.json): machine-readable ownership and allowed deployment environments for all `draft-*` repositories.
 - [Satellite registry](./satellite-repositories.json): machine-readable routing and CI/CD expectations for the managed satellite pilot.
 

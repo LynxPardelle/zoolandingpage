@@ -71,19 +71,19 @@ describe('LanguageService', () => {
     });
 
     it('persists user-selected language in the URL and cookie for reload-safe SSR', () => {
-        setBrowserUrl('/home?draftDomain=pamelabetancourt.com');
+        setBrowserUrl('/home?draftDomain=example.com');
         const replaceState = spyOn(window.history, 'replaceState').and.callThrough();
-        spyOn<any>(service, 'parseCurrentBrowserUrl').and.returnValue(new URL('http://localhost/home?draftDomain=pamelabetancourt.com'));
+        spyOn<any>(service, 'parseCurrentBrowserUrl').and.returnValue(new URL('http://localhost/home?draftDomain=example.com'));
         service.configureLanguages(['es', 'en'], {
             defaultLanguage: 'es',
             requestedLanguage: 'en'
         });
-        setBrowserUrl('/home?draftDomain=pamelabetancourt.com');
+        setBrowserUrl('/home?draftDomain=example.com');
 
         service.setLanguage('es');
 
         expect(service.currentLanguage()).toBe('es');
-        expect(replaceState.calls.mostRecent().args[2]).toBe('/home?draftDomain=pamelabetancourt.com&lang=es');
+        expect(replaceState.calls.mostRecent().args[2]).toBe('/home?draftDomain=example.com&lang=es');
         expect(document.cookie).toContain('zlp_lang=es');
     });
 
@@ -119,7 +119,7 @@ describe('LanguageService', () => {
                 { provide: PLATFORM_ID, useValue: 'server' },
                 {
                     provide: REQUEST,
-                    useValue: new Request('https://pamelabetancourt.zoolandingpage.com.mx/home?lang=es'),
+                    useValue: new Request('https://example.zoolandingpage.com.mx/home?lang=es'),
                 },
             ],
         });
