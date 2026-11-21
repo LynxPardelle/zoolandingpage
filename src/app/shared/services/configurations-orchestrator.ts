@@ -1,6 +1,6 @@
 import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload, TDraftModalUiConfig } from '@/app/shared/types/config-payloads.types';
-import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
+import { computed, DestroyRef, effect, inject, Injectable, REQUEST, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
@@ -15,6 +15,7 @@ import {
     normalizeComponentIfNeeded,
 } from '../utility/component-orchestrator.utility';
 import { forwardAnalyticsEvent } from '../utility/forwardAnalyticsEvent.utility';
+import { parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
 import { AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { BrowserStateService, type TBrowserRuntimeState } from './browser-state.service';
@@ -49,6 +50,7 @@ export class ConfigurationsOrchestratorService {
     private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly valueOrchestrator = inject(ValueOrchestrator);
     private readonly variableStore = inject(VariableStoreService);
+    private readonly request = inject(REQUEST, { optional: true });
     private warnedNavigationMissing = false;
     private warnedLoopPaths = new Set<string>();
     private readonly draftExportContext = signal({
@@ -529,7 +531,16 @@ export class ConfigurationsOrchestratorService {
 
     private readQueryParam(key: string): string | undefined {
         const normalizedKey = String(key ?? '').trim();
-        if (!normalizedKey || typeof window === 'undefined' || !window.location?.search) {
+        if (!normalizedKey) {
+            return undefined;
+        }
+
+        const requestUrl = parseSsrRequestUrl(this.request);
+        if (requestUrl) {
+            return requestUrl.searchParams.get(normalizedKey) ?? undefined;
+        }
+
+        if (typeof window === 'undefined' || !window.location?.search) {
             return undefined;
         }
 
