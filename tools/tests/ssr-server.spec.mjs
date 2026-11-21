@@ -2650,3 +2650,94 @@ test('production SSR server ignores draftDomain query params on published custom
   assert.match(body, /Eros Barajas/i);
   assert.equal(getStderr(), '');
 });
+
+
+test('pagination canonicals align SSR and hydrated archives with normalized page bounds', async (t) => {
+  const fixture = createZoositeContentHubFixture();
+  const site = structuredClone(fixture.localSiteConfig);
+  site.site.i18n.supportedLanguages = ['es'];
+  site.runtime.contentHubs = [];
+  site.runtime.analytics = { enabled: false };
+  const origin = 'https://' + site.domain;
+  const policy = { pageParam: 'pagina', pageSizeParam: 'porPagina', defaultPageSize: 6, collectionPath: 'contentHub.publicArticles.items' };
+  const articles = Array.from({ length: 31 }, (_, i) => ({ title: 'Fixture article ' + (i + 1), path: '/fixture-article-' + (i + 1) }));
+  const bundleFor = pathname => {
+    const category = pathname === '/blog/web', pageId = category ? 'blog-category' : 'blog';
+    const identity = { version: 1, domain: site.domain, pageId };
+    const items = category ? articles.slice(0, 7) : articles;
+    const components = structuredClone(fixture.localBlogComponents);
+    Object.assign(components, identity);
+    components.components.push({ id: 'fixturePagination', type: 'pagination', config: { id: 'fixture-pagination', ariaLabel: 'Paginación fixture', collectionPath: policy.collectionPath, pageParam: 'pagina', pageSizeParam: 'porPagina', defaultPageSize: 6 } });
+    components.components.find(x => x.id === 'fixtureBlogArticles').loopConfig.view = { pagination: {
+      page: { source: 'queryParam', key: 'pagina', fallback: 1 },
+      pageSize: { source: 'queryParam', key: 'porPagina', fallback: 6 },
+    } };
+    return { ...identity, lang: 'es', sourceStage: 'published', siteConfig: site, route: { path: pathname, pageId },
+      pageConfig: { ...identity, rootIds: [...fixture.localBlogPageConfig.rootIds, 'fixturePagination'],
+        seo: { title: 'Fixture archive', description: 'Synthetic archive', canonical: origin + pathname,
+          openGraph: { url: origin + pathname }, paginationCanonical: policy } }, components,
+      variables: { ...identity, variables: { contentHub: { publicArticles: { items } } } },
+      i18n: { ...identity, lang: 'es', dictionary: {} }, metadata: { statusCode: 200, notFound: false } };
+  };
+  const api = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url, 'http://127.0.0.1');
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(url.pathname === '/site-config' ? site : bundleFor(url.searchParams.get('path') || '/blog')));
+  });
+  const { port, getStderr } = await startProductionServer(t, { CONFIG_API_URL: api, CONFIG_API_SERVER_FALLBACK_URL: '' });
+  const cases = [
+    ['/blog?pagina=2', '/blog?pagina=2', 6, 'Fixture article 7'],
+    ['/blog?pagina=999&porPagina=abc&utm_source=ads', '/blog?pagina=6', 1, 'Fixture article 31'],
+    ['/blog?pagina=2&porPagina=0.5', '/blog?pagina=2', 6, 'Fixture article 7'],
+    ['/blog?pagina=2&porPagina=12', '/blog?pagina=2&porPagina=12', 12, 'Fixture article 13'],
+    ['/blog/web?pagina=999', '/blog/web?pagina=2', 1, 'Fixture article 7'],
+    ['/blog/web?pagina=2&porPagina=12', '/blog/web?porPagina=12', 7, 'Fixture article 1'],
+  ];
+  for (const [pathname, canonical, count, first] of cases) {
+    const response = await fetch(`http://127.0.0.1:${port}${pathname}`, { headers: { Host: site.domain, 'X-Forwarded-Host': site.domain, 'X-Forwarded-Proto': 'https' } });
+    const html = await response.text();
+    assert.equal(response.status, 200, pathname);
+    const escaped = (origin + canonical).replaceAll('&', '&amp;');
+    assert.ok(html.includes(`rel="canonical" href="${escaped}"`), pathname + ' SSR canonical: ' + (html.match(/<link[^>]+rel="canonical"[^>]*>/g) || []).join(' '));
+    assert.ok(html.includes(`property="og:url" content="${escaped}"`), pathname + ' SSR Open Graph');
+    const visible = stripNonVisibleHtml(extractAppRootHtml(html));
+    assert.ok(visible.includes(first), pathname + ' rendered first card');
+    assert.equal((visible.match(/href="\/fixture-article-/g) || []).length, count, pathname + ' card count');
+  }
+  const { chromium } = await import('playwright-core');
+  const browser = await chromium.launch({ channel: 'chrome', headless: true });
+  try {
+    for (const width of [1440, 390]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
+      await context.route(/\/(?:runtime-bundle|site-config)(?:\?|$)/, route => {
+        const url = new URL(route.request().url());
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(url.pathname === '/site-config' ? site : bundleFor(url.searchParams.get('path') || '/blog')) });
+      });
+      const page = await context.newPage();
+      for (const [pathname, canonical, count, first] of [cases[0], cases[2], cases[4]]) {
+        const url = new URL(pathname, `http://127.0.0.1:${port}`);
+        url.searchParams.set('draftDomain', site.domain);
+        await page.goto(url.href, { waitUntil: 'domcontentloaded' });
+        await page.locator('h1').first().waitFor();
+        await page.locator('#zlp-boot-curtain').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+        await page.waitForFunction(expected => document.head.querySelector('link[rel="canonical"]')?.getAttribute('href') === expected, origin + canonical);
+        assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), origin + canonical, `${width} hydrated Open Graph`);
+        const cards = page.getByRole('navigation', { name: 'Artículos publicados' }).locator('a');
+        assert.equal(await cards.count(), count, `${width} hydrated card count`);
+        assert.equal(await cards.first().textContent(), first, `${width} hydrated first card`);
+      }
+      const pager = page.getByRole('navigation', { name: 'Paginación fixture' });
+      await pager.getByRole('link', { name: '1', exact: true }).click();
+      await page.waitForFunction(expected => document.head.querySelector('link[rel="canonical"]')?.getAttribute('href') === expected, origin + '/blog/web');
+      assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), origin + '/blog/web', `${width} page-one navigation Open Graph`);
+      await pager.getByRole('link', { name: '2', exact: true }).click();
+      await page.waitForFunction(expected => document.head.querySelector('link[rel="canonical"]')?.getAttribute('href') === expected, origin + '/blog/web?pagina=2');
+      assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), origin + '/blog/web?pagina=2', `${width} page-two navigation Open Graph`);
+      await page.goBack();
+      await page.waitForFunction(expected => document.head.querySelector('link[rel="canonical"]')?.getAttribute('href') === expected, origin + '/blog/web');
+      assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), origin + '/blog/web', `${width} popstate Open Graph`);
+      await context.close();
+    }
+  } finally { await browser.close(); }
+  assert.equal(getStderr(), '');
+});

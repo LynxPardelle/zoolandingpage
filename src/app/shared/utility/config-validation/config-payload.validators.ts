@@ -3314,6 +3314,18 @@ export const isRuntimeBundlePayload = (value: unknown): value is TRuntimeBundleP
     return true;
 };
 
+export const isSeoPaginationCanonical = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['pageParam', 'pageSizeParam', 'defaultPageSize', 'collectionPath']))) return false;
+    const queryKey = /^[A-Za-z][A-Za-z0-9_-]*$/;
+    if (typeof value['pageParam'] !== 'string' || !queryKey.test(value['pageParam'])) return false;
+    if (typeof value['pageSizeParam'] !== 'string' || !queryKey.test(value['pageSizeParam'])) return false;
+    if (value['pageParam'] === value['pageSizeParam']) return false;
+    if (!Number.isSafeInteger(value['defaultPageSize']) || Number(value['defaultPageSize']) <= 0) return false;
+    return typeof value['collectionPath'] === 'string'
+        && /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(value['collectionPath']);
+};
+
 export const isSeoPayload = (value: unknown): value is TSeoPayload => {
     if (!isRecord(value)) return false;
     if (value['title'] !== undefined && typeof value['title'] !== 'string' && !isStringRecord(value['title'])) return false;
@@ -3322,6 +3334,7 @@ export const isSeoPayload = (value: unknown): value is TSeoPayload => {
     if (value['twitter'] !== undefined && !isRecord(value['twitter'])) return false;
     if (value['canonical'] !== undefined && typeof value['canonical'] !== 'string' && !isStringRecord(value['canonical'])) return false;
     if (value['canonicalMode'] !== undefined && value['canonicalMode'] !== 'none') return false;
+    if (value['paginationCanonical'] !== undefined && !isSeoPaginationCanonical(value['paginationCanonical'])) return false;
     if (value['keywords'] !== undefined && !isLocalizedKeywordValue(value['keywords'])) return false;
     if (value['robots'] !== undefined && typeof value['robots'] !== 'string' && !isStringRecord(value['robots'])) return false;
     return true;

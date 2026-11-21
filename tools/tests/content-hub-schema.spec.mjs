@@ -1171,3 +1171,24 @@ test('zoosite seed article fixture files validate against content hub schemas', 
   assert.deepEqual(validateSchema(taxonomySchema, taxonomy), []);
   assert.deepEqual(validateSchema(publishValidationSchema, validationReport), []);
 });
+
+
+test('page SEO schemas support the closed opt-in pagination canonical contract', async () => {
+  const pageSchema = await readSchema('pageConfig');
+  const seoSchema = await readSchema('seo');
+  const policy = { pageParam: 'pagina', pageSizeParam: 'porPagina', defaultPageSize: 6, collectionPath: 'contentHub.publicArticles.items' };
+  const identity = { version: 1, domain: 'example.com', pageId: 'blog' };
+  const validate = value => [
+    validateWithAjv(pageSchema, { ...identity, rootIds: ['main'], seo: { paginationCanonical: value } }),
+    validateWithAjv(seoSchema, { ...identity, paginationCanonical: value }),
+  ];
+  for (const errors of validate(policy)) assert.deepEqual(errors, []);
+  assert.deepEqual(pageSchema.definitions.paginationCanonical, seoSchema.definitions.paginationCanonical);
+  for (const invalid of [null, false, {}, { ...policy, defaultPageSize: 0 },
+    { ...policy, defaultPageSize: -1 }, { ...policy, defaultPageSize: 1.5 },
+    { ...policy, defaultPageSize: '6' }, { ...policy, defaultPageSize: Number.MAX_SAFE_INTEGER + 1 },
+    { ...policy, pageParam: '' }, { ...policy, pageSizeParam: 'bad key' },
+    { ...policy, collectionPath: '' }, { ...policy, collectionPath: 'items[0]' },
+    { ...policy, filters: [] },
+  ]) for (const errors of validate(invalid)) assert.notDeepEqual(errors, [], JSON.stringify(invalid));
+});

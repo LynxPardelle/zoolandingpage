@@ -595,6 +595,14 @@ export type TLocalizedKeywordEntry = string | readonly string[];
 
 export type TLocalizedKeywordsValue = TLocalizedKeywordEntry | Record<string, TLocalizedKeywordEntry>;
 
+export type TSeoPaginationCanonical = {
+    readonly pageParam: string;
+    readonly pageSizeParam: string;
+    readonly defaultPageSize: number;
+    /** The complete collection for this page, before query-driven filters. */
+    readonly collectionPath: string;
+};
+
 export type TSeoPayload = {
     readonly title?: TLocalizedTextValue;
     readonly description?: TLocalizedTextValue;
@@ -602,6 +610,7 @@ export type TSeoPayload = {
     readonly twitter?: Record<string, unknown>;
     readonly canonical?: TLocalizedTextValue;
     readonly canonicalMode?: 'none';
+    readonly paginationCanonical?: TSeoPaginationCanonical;
     readonly keywords?: TLocalizedKeywordsValue;
     readonly robots?: TLocalizedTextValue;
 };

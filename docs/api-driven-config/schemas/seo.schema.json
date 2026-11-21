@@ -3,6 +3,17 @@
   "title": "SeoPayload",
   "type": "object",
   "definitions": {
+    "paginationCanonical": {
+      "type": "object",
+      "required": ["pageParam", "pageSizeParam", "defaultPageSize", "collectionPath"],
+      "properties": {
+        "pageParam": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+        "pageSizeParam": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+        "defaultPageSize": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "collectionPath": { "type": "string", "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*$" }
+      },
+      "additionalProperties": false
+    },
     "localizedString": {
       "oneOf": [
         { "type": "string" },
@@ -45,6 +56,7 @@
     "twitter": { "type": "object", "additionalProperties": true },
     "canonical": { "$ref": "#/definitions/localizedString" },
     "canonicalMode": { "const": "none" },
+    "paginationCanonical": { "$ref": "#/definitions/paginationCanonical" },
     "keywords": { "$ref": "#/definitions/localizedKeywords" },
     "robots": { "$ref": "#/definitions/localizedString" }
   },

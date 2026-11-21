@@ -1,5 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
+import { REQUEST } from '@angular/core';
+import { resolveLoopCollectionViewItems } from '../utility/component-orchestrator.utility';
 import { Meta, Title } from '@angular/platform-browser';
 import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
@@ -7,7 +9,7 @@ import { ConfigStoreService } from './config-store.service';
 import { SeoMetadataService } from './seo-metadata.service';
 import { VariableStoreService } from './variable-store.service';
 import { ProtectedOriginService } from './protected-origin.service';
-import type { TDraftSiteConfigPayload } from '../types/config-payloads.types';
+import type { TDraftSiteConfigPayload, TSeoPayload } from '../types/config-payloads.types';
 
 describe('SeoMetadataService page fonts', () => {
     let assetProjection:(value:string)=>string;
@@ -1336,5 +1338,124 @@ describe('SeoMetadataService', () => {
 
         expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
             .toBe('https://sitiosweb.zoolandingpage.com.mx/contacto?ref=keep');
+    });
+});
+
+
+describe('SeoMetadataService opt-in pagination canonical', () => {
+    const origin = 'https://example.com';
+    const paginationCanonical = {
+        pageParam: 'pagina', pageSizeParam: 'porPagina', defaultPageSize: 6,
+        collectionPath: 'contentHub.publicArticles.items',
+    };
+    let service: SeoMetadataService;
+    let variables: VariableStoreService;
+    let meta: jasmine.SpyObj<Meta>;
+    let doc: Document;
+    let location: { origin: string; pathname: string; search: string };
+
+    function setup(search = '', options: { path?: string; count?: number; requestUrl?: string } = {}): void {
+        location = { origin, pathname: options.path ?? '/blog', search };
+        const base = document.implementation.createHTMLDocument('pagination SEO');
+        doc = { documentElement: base.documentElement, head: base.head,
+            createElement: base.createElement.bind(base), defaultView: { location } } as unknown as Document;
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+        TestBed.configureTestingModule({ providers: [SeoMetadataService, VariableStoreService,
+            { provide: DOCUMENT, useValue: doc },
+            { provide: Meta, useValue: meta },
+            { provide: Title, useValue: jasmine.createSpyObj<Title>('Title', ['setTitle']) },
+            { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain: 'example.com' }) } },
+            { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
+            { provide: RuntimeConfigService, useValue: {
+                seoDefaults: () => ({ canonicalOrigin: origin, enforceCanonicalHost: true }),
+                appName: () => 'Example', appDescription: () => '',
+            } },
+            { provide: REQUEST, useValue: options.requestUrl ? new Request(options.requestUrl) : null },
+        ] });
+        variables = TestBed.inject(VariableStoreService);
+        variables.setPayload({ version: 1, domain: 'example.com', pageId: 'blog',
+            variables: { contentHub: { publicArticles: { items: Array.from({ length: options.count ?? 31 }, (_, id) => ({ id })) } } } });
+        service = TestBed.inject(SeoMetadataService);
+    }
+    function apply(extra: Record<string, unknown> = {}): void {
+        service.apply('es', { canonical: origin + location.pathname,
+            paginationCanonical, ...extra } as unknown as TSeoPayload);
+    }
+    function expectUrls(expected: string): void {
+        expect(doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(expected);
+        expect(meta.updateTag.calls.allArgs().filter(([tag]) => tag.property === 'og:url').at(-1)?.[0].content).toBe(expected);
+    }
+
+    for (const [query, expected] of [
+        ['', ''], ['?pagina=1&porPagina=6', ''], ['?pagina=2', '?pagina=2'],
+        ['?pagina=6', '?pagina=6'], ['?pagina=999', '?pagina=6'],
+        ['?pagina=2&porPagina=12', '?pagina=2&porPagina=12'], ['?porPagina=12', '?porPagina=12'],
+        ['?pagina=999&porPagina=12', '?pagina=3&porPagina=12'],
+        ['?pagina=2&porPagina=100', '?porPagina=100'],
+        ['?pagina=&porPagina=', ''], ['?pagina=-2&porPagina=-12', ''],
+        ['?pagina=no&porPagina=no', ''], ['?pagina=Infinity&porPagina=0', ''],
+        ['?pagina=2.9&porPagina=6.9', '?pagina=2'], ['?pagina=0.5&porPagina=0.5', ''],
+    ]) {
+        it(`normalizes and bounds ${query || 'the base page'} from the unfiltered collection`, () => {
+            setup(query); apply(); expectUrls(origin + '/blog' + expected);
+        });
+    }
+    it('allows only the two normalized pagination keys even with filters, campaign and private query data', () => {
+        setup('?pagina=6&porPagina=6&q=unmatched&tema=absent&orden=titulo&utm_source=ads&email=private%40example.com&phone=123#articulos');
+        apply({ openGraph: { url: origin + '/blog?utm_source=stale' } });
+        expectUrls(origin + '/blog?pagina=6');
+    });
+    it('uses the supplied category collection and preserves its canonical path', () => {
+        setup('?pagina=999', { path: '/blog/web' });
+        variables.setRuntimeValue('category.publicItems', Array.from({ length: 7 }, (_, id) => ({ id })));
+        apply({ paginationCanonical: { ...paginationCanonical, collectionPath: 'category.publicItems' } });
+        expectUrls(origin + '/blog/web?pagina=2');
+    });
+    it('uses page one for an empty or missing collection and preserves a nondefault page size', () => {
+        setup('?pagina=999&porPagina=12', { count: 0 }); apply(); expectUrls(origin + '/blog?porPagina=12');
+        apply({ paginationCanonical: { ...paginationCanonical, collectionPath: 'missing.items' } });
+        expectUrls(origin + '/blog?porPagina=12');
+    });
+    it('reads SSR REQUEST query before an unrelated browser location query', () => {
+        setup('?pagina=1', { requestUrl: 'https://localhost/blog?pagina=3&porPagina=12&utm_campaign=ads' });
+        apply(); expectUrls(origin + '/blog?pagina=3&porPagina=12');
+    });
+    it('updates both URLs when the browser query changes and then returns to the base page', () => {
+        setup('?pagina=2'); apply(); expectUrls(origin + '/blog?pagina=2');
+        location.search = '?pagina=1&porPagina=6'; apply(); expectUrls(origin + '/blog');
+    });
+    it('leaves pages without the opt-in unchanged, including their explicit Open Graph URL', () => {
+        setup('?pagina=2&porPagina=12');
+        service.apply('es', { canonical: origin + '/blog', openGraph: { url: origin + '/existing-social-url' } });
+        expect(doc.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(origin + '/blog');
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:url', content: origin + '/existing-social-url' });
+    });
+
+    it('honors the declared invalid-size fallback in the real loop and metadata together', () => {
+        setup('?pagina=2&porPagina=abc');
+        const items = variables.getArray('contentHub.publicArticles.items');
+        for (const size of ['abc', '0.5', '-2', '0']) {
+            location.search = '?pagina=2&porPagina=' + size;
+            const rendered = resolveLoopCollectionViewItems(items, { pagination: {
+                page: { source: 'queryParam', key: 'pagina' },
+                pageSize: { source: 'queryParam', key: 'porPagina', fallback: 6 },
+            } }, { sourceComponents: [], warnOnMissingSource: true, getVariable: () => undefined, getI18n: () => undefined,
+                getCurrentLanguage: () => 'es', resolveI18nKey: () => undefined,
+                getQueryParam: key => new URLSearchParams(location.search).get(key) ?? undefined });
+            expect(rendered).withContext(size).toEqual(items.slice(6, 12));
+            apply(); expectUrls(origin + '/blog?pagina=2');
+        }
+    });
+    it('applies the existing sanitizer to configured campaign or private pagination keys', () => {
+        setup('?phone=525512345678&utm_source=123');
+        for (const pageSizeParam of ['phone', 'utm_source']) {
+            apply({ paginationCanonical: { ...paginationCanonical, pageSizeParam } });
+            expectUrls(origin + '/blog');
+        }
+    });
+
+    it('continues to honor explicit canonical suppression', () => {
+        setup('?pagina=2'); apply({ canonicalMode: 'none' });
+        expect(doc.head.querySelector('link[rel="canonical"]')).toBeNull();
     });
 });

@@ -1,4 +1,4 @@
-import type { TDraftSiteIconConfig, TSeoPayload } from '@/app/shared/types/config-payloads.types';
+import type { TDraftSiteIconConfig, TSeoPayload, TSeoPaginationCanonical } from '@/app/shared/types/config-payloads.types';
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, REQUEST } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
@@ -13,6 +13,7 @@ import { ConfigStoreService } from './config-store.service';
 import { ProtectedOriginService } from './protected-origin.service';
 import {isFixedJournal, journalAlternatePaths} from '../utility/content-hub/fixed-journal-public';
 import { resolveSharedContentHubArticleSeo } from '../utility/content-hub/shared-blog-canonical';
+import { buildPaginationCanonicalUrl } from '../utility/pagination-canonical.utility';
 
 const AD_CANONICAL_QUERY_PARAMS = new Set([
     'gclid',
@@ -88,11 +89,15 @@ export class SeoMetadataService {
                 ? `${ origin }${ pathname }`
                 : this.resolveLocalizedText(seo?.canonical, lang) || url;
             const suppressCanonical = !sharedSeo && seo?.canonicalMode === 'none';
-            const canonicalUrl = sharedSeo?.canonical ?? this.resolveEffectiveCanonicalUrl(
+            const effectiveCanonicalUrl = sharedSeo?.canonical ?? this.resolveEffectiveCanonicalUrl(
                 rawCanonicalUrl,
                 origin,
                 siteSeo,
             );
+            const paginationCanonicalUrl = !sharedSeo && seo?.paginationCanonical
+                ? this.resolvePaginationCanonicalUrl(effectiveCanonicalUrl, seo.paginationCanonical)
+                : '';
+            const canonicalUrl = paginationCanonicalUrl || effectiveCanonicalUrl;
             const ogLocale = toOpenGraphLocale(lang) || 'en_US';
             const openGraphDefaults = this.resolveLocalizedRecord(this.asRecord(siteSeo?.openGraph), lang);
             const twitterDefaults = this.resolveLocalizedRecord(this.asRecord(siteSeo?.twitter), lang);
@@ -104,7 +109,7 @@ export class SeoMetadataService {
                 ...twitterDefaults,
                 ...this.asRecord(seo?.twitter),
             }, lang);
-            const openGraphUrl = sharedSeo?.canonical || this.cleanString(openGraph['url']) || canonicalUrl;
+            const openGraphUrl = paginationCanonicalUrl || sharedSeo?.canonical || this.cleanString(openGraph['url']) || canonicalUrl;
             const defaultSocialImage = this.resolveAbsoluteAssetUrl(DEFAULT_SOCIAL_IMAGE_HREF, origin);
             const defaultImage = this.resolveAbsoluteAssetUrl(this.cleanString(siteSeo?.defaultImage), origin)
                 || this.resolveAbsoluteAssetUrl(this.cleanString(openGraphDefaults['image']), origin)
@@ -605,6 +610,13 @@ export class SeoMetadataService {
         } catch {
             return canonicalUrl;
         }
+    }
+
+    private resolvePaginationCanonicalUrl(rawUrl: string, policy: TSeoPaginationCanonical): string {
+        return this.stripAdQueryParams(buildPaginationCanonicalUrl(
+            rawUrl, policy, this.readQueryParam(policy.pageParam), this.readQueryParam(policy.pageSizeParam),
+            this.variables.getArray(policy.collectionPath).length,
+        ));
     }
 
     private withLangParam(rawUrl: string, lang: string): string {
