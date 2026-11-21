@@ -4037,6 +4037,28 @@ describe('config-payload.validators', () => {
         })).toBeTrue();
     });
 
+
+    it('validates only the explicit pagination canonical shape', () => {
+        const paginationCanonical = {
+            pageParam: 'pagina', pageSizeParam: 'porPagina', defaultPageSize: 6,
+            collectionPath: 'contentHub.publicArticles.items',
+        };
+        expect(isSeoPayload({ paginationCanonical })).toBeTrue();
+        for (const invalid of [null, false, {},
+            { ...paginationCanonical, pageParam: '' },
+            { ...paginationCanonical, pageParam: 'bad key' },
+            { ...paginationCanonical, pageSizeParam: 'pagina' },
+            { ...paginationCanonical, defaultPageSize: 0 },
+            { ...paginationCanonical, defaultPageSize: -1 },
+            { ...paginationCanonical, defaultPageSize: 1.5 },
+            { ...paginationCanonical, defaultPageSize: Infinity },
+            { ...paginationCanonical, defaultPageSize: '6' },
+            { ...paginationCanonical, collectionPath: '' },
+            { ...paginationCanonical, collectionPath: 'items[0]' },
+            { ...paginationCanonical, filters: [] },
+        ]) expect(isSeoPayload({ paginationCanonical: invalid })).withContext(JSON.stringify(invalid)).toBeFalse();
+    });
+
     it('rejects seo payloads with invalid localized keywords', () => {
         const invalid = {
             keywords: {

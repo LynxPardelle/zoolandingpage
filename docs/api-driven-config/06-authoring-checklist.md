@@ -2,6 +2,28 @@
 
 Use this checklist when asking an AI assistant to generate a new landing page configuration.
 
+## Optional pagination canonical
+
+An archive can opt in through its own `page-config.json.seo`:
+
+```json
+{
+  "canonical": "https://example.com/blog",
+  "paginationCanonical": {
+    "pageParam": "pagina",
+    "pageSizeParam": "porPagina",
+    "defaultPageSize": 6,
+    "collectionPath": "contentHub.publicArticles.items"
+  }
+}
+```
+
+Use distinct query keys and a positive integer default size matching the page's loop and paginator. `collectionPath` must resolve to the complete literal collection in `runtimeBundle.variables.variables` for this archive and language, before user search, tag filters, sorting or pagination. Client-only computed values and runtime overlays are not sources for the server head. A category archive must point at the collection appropriate to that category; this option does not infer categories, apply expressions or fetch additional records. A missing or empty collection has one canonical page. Do not use this option with an upstream partial page when the complete collection is unavailable.
+
+The service reads query values from Angular `REQUEST` during SSR and the browser location otherwise. It reuses loop numeric normalization (finite positive numbers floored to integers) and clamps the page to the collection's page count. Missing, empty, nonnumeric or nonpositive sizes use the configured default; a value below one that floors to zero also uses that default. The loop honors its explicitly authored size fallback for invalid values; loops without an explicit fallback keep their previous unpaginated behavior. The paginator also honors its configured default when a fractional size floors to zero.
+
+Only the two normalized pagination parameters are written to canonical and `og:url`, in page-then-size order; the existing campaign/private-key sanitizer also runs on that result. Page one and the default size are omitted. For a 31-item collection at size six: the base and `?pagina=1&porPagina=6` use the base URL; `?pagina=2` and `?pagina=6` retain that page; `?pagina=999` clamps to `?pagina=6`; `?pagina=2&porPagina=12` retains both keys; and `?porPagina=12` retains just the size. Search, tags, sort, campaign parameters, private values and fragments are excluded. Configure this option only for archives whose canonical path identifies the page and locale without a required query selector such as `lang`. It does not change robots, facet indexing, shared-article canonicals or pages without it. Explicit canonical suppression remains supported.
+
 ## Hard rules (must follow)
 
 - Only author configuration objects (`TGenericComponent` entries).

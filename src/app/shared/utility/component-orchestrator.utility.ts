@@ -520,14 +520,12 @@ function applyLoopViewPagination(
     if (!pagination) return [...items];
     if (!shouldApplyLoopViewPagination(pagination, options)) return [...items];
 
-    const pageSize = normalizePositiveInteger(resolveLoopViewMaybeSource(pagination.pageSize, options));
+    const pageSize = normalizePositiveInteger(resolveLoopViewMaybeSource(pagination.pageSize, options))
+        || (isLoopViewValueSource(pagination.pageSize) ? normalizePositiveInteger(pagination.pageSize.fallback) : undefined);
     if (!pageSize) return [...items];
 
     const pageIndexBase = pagination.pageIndexBase === 0 ? 0 : 1;
-    const rawPage = normalizePositiveInteger(resolveLoopViewMaybeSource(pagination.page, options)) ?? pageIndexBase;
-    const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
-    const maxPage = pageIndexBase + pageCount - 1;
-    const page = Math.min(maxPage, Math.max(pageIndexBase, rawPage));
+    const page = resolveLoopPaginationPage(resolveLoopViewMaybeSource(pagination.page, options), items.length, pageSize, pageIndexBase);
     const start = (page - pageIndexBase) * pageSize;
     return [...items].slice(start, start + pageSize);
 }
@@ -558,7 +556,14 @@ function hasActiveLoopQueryParam(key: string, options: TLoopMaterializationOptio
         && normalized !== 'null';
 }
 
-function normalizePositiveInteger(value: unknown): number | undefined {
+export function resolveLoopPaginationPage(value: unknown, totalItems: number, pageSize: number, pageIndexBase: 0 | 1 = 1): number {
+    const rawPage = normalizePositiveInteger(value) ?? pageIndexBase;
+    const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
+    const maxPage = pageIndexBase + pageCount - 1;
+    return Math.min(maxPage, Math.max(pageIndexBase, rawPage));
+}
+
+export function normalizePositiveInteger(value: unknown): number | undefined {
     const parsed = Number(value);
     if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
     return Math.floor(parsed);

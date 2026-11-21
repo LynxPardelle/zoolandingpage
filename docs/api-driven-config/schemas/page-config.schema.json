@@ -3,6 +3,17 @@
   "title": "PageConfigPayload",
   "type": "object",
   "definitions": {
+    "paginationCanonical": {
+      "type": "object",
+      "required": ["pageParam", "pageSizeParam", "defaultPageSize", "collectionPath"],
+      "properties": {
+        "pageParam": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+        "pageSizeParam": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+        "defaultPageSize": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "collectionPath": { "type": "string", "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*$" }
+      },
+      "additionalProperties": false
+    },
     "googleFontsStylesheetUrl": {
       "type": "string",
       "maxLength": 4096,
@@ -23,7 +34,8 @@
           "additionalProperties": true
         },
         "canonical": { "type": "string" },
-        "canonicalMode": { "const": "none" }
+        "canonicalMode": { "const": "none" },
+        "paginationCanonical": { "$ref": "#/definitions/paginationCanonical" }
       },
       "additionalProperties": false
     },

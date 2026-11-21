@@ -408,3 +408,17 @@ describe('materializeLoopComponents collection view', () => {
         expect((withFilter.get('pokemonCard__1') as any).config.text).toBe('venusaur');
     });
 });
+
+
+describe('loop invalid pagination size compatibility', () => {
+    const items = Array.from({ length: 31 }, (_, id) => ({ id }));
+    const options = { sourceComponents: [], warnOnMissingSource: true, getVariable: () => undefined, getI18n: () => undefined,
+        getCurrentLanguage: () => 'es', resolveI18nKey: () => undefined,
+        getQueryParam: (key: string) => key === 'porPagina' ? 'abc' : '2' };
+    it('preserves the full collection when an invalid source has no explicit fallback', () => {
+        expect(resolveLoopCollectionViewItems(items, { pagination: {
+            page: { source: 'queryParam', key: 'pagina' },
+            pageSize: { source: 'queryParam', key: 'porPagina' },
+        } }, options)).toEqual(items);
+    });
+});
