@@ -22,6 +22,9 @@ import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/r
 import { resolvePublicRouteRedirect } from '@/app/shared/utility/route-matching/public-route-redirect';
 import { resolveNavigationTarget } from '@/app/shared/utility/navigation/navigation-target.utility';
 import { resolveMetadataTemplates, type TMetadataTemplateContext } from '@/app/shared/utility/metadata-template.utility';
+import type { TSeoPaginationCanonical } from '@/app/shared/types/config-payloads.types';
+import { buildPaginationCanonicalUrl } from '@/app/shared/utility/pagination-canonical.utility';
+import { isSeoPaginationCanonical } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { classifyProtectedOriginRequest, isProtectedOriginBinding, projectProtectedAssetAttributes, readPackagedProtectedOrigin, resolveProtectedRuntimeEnvironment, type ProtectedOriginBinding, type ProtectedOriginContext } from '@/app/shared/utility/auth/protected-admin-origin.utility';
 
 // Deployment selection is server-owned. Never load an origin binding from draft query data.
@@ -209,6 +212,7 @@ type TSiteSeoConfig = {
 
 type TPageSeoConfig = TSiteSeoConfig & {
   readonly canonicalMode?: 'none';
+  readonly paginationCanonical?: TSeoPaginationCanonical;
 };
 
 type THostOverrideConfig = {
@@ -3209,11 +3213,12 @@ function buildCanonicalHeadHtml(
   contentHubSiteConfig: TLocalSiteConfig | null = siteConfig,
   allowCanonicalSuppression = true,
   sharedSeo: TSharedContentHubArticleSeo | null = null,
+  paginationCanonicalUrl = '',
 ): string {
   if (!sharedSeo && allowCanonicalSuppression && pageConfig?.seo?.canonicalMode === 'none') {
     return '';
   }
-  const canonicalUrl = sharedSeo?.canonical ?? resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig, contentHubSiteConfig);
+  const canonicalUrl = sharedSeo?.canonical ?? (paginationCanonicalUrl || resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig, contentHubSiteConfig));
   return `<link rel="canonical" href="${escapeHtmlAttribute(canonicalUrl)}">`;
 }
 
@@ -3238,6 +3243,28 @@ function resolveCanonicalHeadUrl(
   const canonicalUrl = resolveEffectiveCanonicalUrl(rawCanonical, `${origin}/`, host, siteConfig);
   return isCategoryFilterPath && readContentHubRuntimeConfigs(contentHubSiteConfig).some(isFixedJournal)
     ? addLangParam(canonicalUrl, lang) : canonicalUrl;
+}
+
+function resolveServerPaginationCanonicalUrl(
+  req: express.Request,
+  baseCanonical: string,
+  policy: TSeoPaginationCanonical,
+  runtimeBundle: TRuntimeBundlePayload | null,
+): string {
+  const payload = isRecord(runtimeBundle?.variables) ? runtimeBundle.variables : null;
+  const variables = isRecord(payload?.['variables']) ? payload['variables'] : {};
+  const collection = policy.collectionPath.split('.').reduce<unknown>((value, key) => (
+    isRecord(value) && Object.hasOwn(value, key) ? value[key] : undefined
+  ), variables);
+  const queryValue = (key: string): string | undefined => {
+    const value = req.query[key];
+    const first = Array.isArray(value) ? value[0] : value;
+    return typeof first === 'string' ? first : undefined;
+  };
+  return stripAdQueryParamsFromUrl(buildPaginationCanonicalUrl(
+    baseCanonical, policy, queryValue(policy.pageParam), queryValue(policy.pageSizeParam),
+    Array.isArray(collection) ? collection.length : 0,
+  ));
 }
 
 function buildHreflangHeadHtml(
@@ -3678,6 +3705,7 @@ function buildSeoTextHeadHtml(
   siteConfig: TLocalSiteConfig | null,
   pageConfig: TLocalPageConfig | null,
   sharedSeo: TSharedContentHubArticleSeo | null,
+  paginationCanonicalUrl = '',
 ): string {
   const lang = resolveRequestLanguage(req, siteConfig);
   const pageSeo = pageConfig?.seo;
@@ -3697,7 +3725,7 @@ function buildSeoTextHeadHtml(
     || resolveLocalizedSeoString(siteSeo?.description, lang);
   const seoKeywords = resolveSeoMetaList(pageSeoRecord['keywords'], lang)
     || resolveSeoMetaList(siteSeoRecord['keywords'], lang);
-  const canonicalUrl = sharedSeo?.canonical ?? resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig);
+  const canonicalUrl = sharedSeo?.canonical ?? (paginationCanonicalUrl || resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig));
   const openGraphDefaults = resolveLocalizedSeoRecord(siteSeo?.openGraph, lang);
   const twitterDefaults = resolveLocalizedSeoRecord(siteSeo?.twitter, lang);
   const openGraph = {
@@ -3711,7 +3739,7 @@ function buildSeoTextHeadHtml(
   const ogTitle = cleanString(openGraph['title']) || seoTitle;
   const ogDescription = cleanString(openGraph['description']) || seoDescription;
   const ogType = cleanString(openGraph['type']) || 'website';
-  const ogUrl = sharedSeo?.canonical ?? (cleanString(openGraph['url']) || canonicalUrl);
+  const ogUrl = sharedSeo?.canonical ?? (paginationCanonicalUrl || cleanString(openGraph['url']) || canonicalUrl);
   const ogImage = cleanString(openGraph['image'])
     || cleanString(siteSeo?.defaultImage)
     || cleanString(openGraphDefaults['image']);
@@ -3810,6 +3838,12 @@ async function decorateHtmlResponse(
       contentHubDelivery.article.articleId, resolveLocalizedSeoString(requestPageConfig?.seo?.robots, contentHubDelivery.lang))
     : null;
   const pageConfig = withContentHubSeoPageConfig(req, lookupDomain, contentHubDelivery, requestPageConfig, sharedSeo, routeRuntimeBundle);
+  const paginationPolicy = !sharedSeo && effectiveStatus !== 404 ? pageConfig?.seo?.paginationCanonical : undefined;
+  const paginationCanonicalUrl = paginationPolicy && isSeoPaginationCanonical(paginationPolicy)
+    ? resolveServerPaginationCanonicalUrl(req,
+      resolveCanonicalHeadUrl(req, lookupDomain, siteConfig, pageConfig, publicContentHubSiteConfig), paginationPolicy,
+      routeRuntimeBundle ?? await loadRuntimeRouteBundleForRequest(req, lookupDomain, siteConfig, environment))
+    : '';
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   applyProtectedHtmlCacheHeaders(headers, siteConfig, req.path);
@@ -3828,7 +3862,7 @@ async function decorateHtmlResponse(
   const headHtml = [
     effectiveStatus === 404
       ? buildNotFoundSeoTextHeadHtml(siteConfig, responseLang)
-      : buildSeoTextHeadHtml(req, lookupDomain, siteConfig, pageConfig, sharedSeo),
+      : buildSeoTextHeadHtml(req, lookupDomain, siteConfig, pageConfig, sharedSeo, paginationCanonicalUrl),
     buildGoogleTagHeadHtml(host, siteConfig),
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
     buildBrowserIconsHeadHtml(siteConfig),
@@ -3842,6 +3876,7 @@ async function decorateHtmlResponse(
       publicContentHubSiteConfig,
       effectiveStatus !== 404,
       sharedSeo,
+      paginationCanonicalUrl,
     ),
     hreflangHeadHtml,
   ].filter(Boolean).join('\n');

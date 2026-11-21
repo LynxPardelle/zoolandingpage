@@ -1,3 +1,5 @@
+import { REQUEST } from '@angular/core';
+import { VariableStoreService } from '../../services/variable-store.service';
 import { TestBed } from '@angular/core/testing';
 import { GenericPaginationComponent } from './generic-pagination.component';
 
@@ -7,6 +9,20 @@ describe('GenericPaginationComponent', () => {
       imports: [GenericPaginationComponent],
     }).compileComponents();
   });
+
+
+  for (const value of ['abc', '0.5', '-2', '0']) {
+    it(`uses the declared default page size for invalid ${value}`, () => {
+      TestBed.overrideProvider(REQUEST, { useValue: new Request('https://example.com/blog?pagina=2&porPagina=' + value) });
+      TestBed.inject(VariableStoreService).setRuntimeValue('articles', Array.from({ length: 31 }, (_, id) => ({ id })));
+      const fixture = TestBed.createComponent(GenericPaginationComponent);
+      fixture.componentRef.setInput('config', { collectionPath: 'articles', pageParam: 'pagina', pageSizeParam: 'porPagina', defaultPageSize: 6 });
+      fixture.detectChanges();
+      expect(fixture.componentInstance.currentPageSize()).toBe(6);
+      expect(fixture.componentInstance.pageCount()).toBe(6);
+      expect(fixture.componentInstance.boundedPage()).toBe(2);
+    });
+  }
 
   it('marks disabled boundary links with a visible disabled state', () => {
     const fixture = TestBed.createComponent(GenericPaginationComponent);

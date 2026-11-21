@@ -11,6 +11,7 @@ import {
 import { VariableStoreService } from '../../services/variable-store.service';
 import {
   composeDomId,
+  normalizePositiveInteger,
   resolveComponentRootDomId,
   resolveDynamicValue,
   resolveLoopCollectionViewItems,
@@ -346,7 +347,7 @@ export class GenericPaginationComponent {
 
   private readPositiveIntegerParam(key: string, fallback: number): number {
     const raw = this.currentUrl().searchParams.get(key);
-    return this.asPositiveInteger(raw) ?? Math.max(1, Math.floor(fallback));
+    return this.asPositiveInteger(raw) || Math.max(1, Math.floor(fallback));
   }
 
   private hasActiveQueryParam(key: unknown): boolean {
@@ -394,9 +395,7 @@ export class GenericPaginationComponent {
   }
 
   private asPositiveInteger(value: unknown): number | undefined {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
-    return Math.floor(parsed);
+    return normalizePositiveInteger(value);
   }
 
   private joinClasses(...classes: readonly string[]): string {
