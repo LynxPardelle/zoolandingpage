@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { createEnvironmentInjector, EnvironmentInjector, REQUEST, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { NgxAngoraService } from 'ngx-angora-css';
 
@@ -103,6 +103,53 @@ describe('ConfigurationsOrchestratorService', () => {
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
+
+  for (const [page, expectedNumbers] of [[2, [7, 8, 9, 10, 11, 12]], [6, [31]]] as const) {
+    it(`materializes page ${page} from the SSR request query`, () => {
+      variables.setPayload({
+        version: 1,
+        pageId: 'default',
+        domain: 'zoolandingpage.com.mx',
+        variables: {
+          articles: Array.from({ length: 31 }, (_, index) => ({ href: `/article/${index + 1}` })),
+        },
+      });
+      const injector = createEnvironmentInjector([
+        { provide: REQUEST, useValue: new Request(`https://example.com/blog?pagina=${page}&porPagina=6`) },
+        ConfigurationsOrchestratorService,
+      ], TestBed.inject(EnvironmentInjector));
+
+      try {
+        const ssrService = injector.get(ConfigurationsOrchestratorService);
+        ssrService.setExternalComponentsFromPayload(createComponentsPayload({
+          article: { id: 'article', type: 'link', config: { href: '' } },
+          articles: {
+            id: 'articles',
+            type: 'container',
+            config: { components: [] },
+            loopConfig: {
+              source: 'var',
+              path: 'articles',
+              templateId: 'article',
+              bindings: [{ to: 'config.href', sources: ['href'] }],
+              view: {
+                pagination: {
+                  page: { source: 'queryParam', key: 'pagina' },
+                  pageSize: { source: 'queryParam', key: 'porPagina', fallback: 6 },
+                },
+              },
+            },
+          },
+        }));
+
+        const container = ssrService.getComponentById('articles') as any;
+        const hrefs = container.config.components.map((id: string) => (ssrService.getComponentById(id) as any).config.href);
+        expect(hrefs).toEqual(expectedNumbers.map(number => `/article/${number}`));
+      } finally {
+        injector.destroy();
+      }
+    });
+  }
 
   it('exports merged page-config sections without recreating legacy companion files', () => {
     configStore.setPageConfig({
